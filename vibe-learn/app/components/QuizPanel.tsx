@@ -61,7 +61,7 @@ export default function QuizPanel({ code, isEnabled, quiz, onAnswer, onEnd }: Pr
           onClick={onEnd}
           className="shrink-0 rounded-none px-3 py-1 text-xs text-[#d4cfc9] transition-colors hover:text-[#d4cfc9]"
         >
-          End quiz
+          end quiz
         </button>
       </div>
       <div className="flex flex-col gap-2">
@@ -79,8 +79,8 @@ export default function QuizPanel({ code, isEnabled, quiz, onAnswer, onEnd }: Pr
               className={`flex items-center gap-3 rounded-none px-4 py-2.5 text-left text-sm transition-colors
                 ${selected && isRight ? 'bg-[#3a853e]/10 text-[#3a853e] dark:bg-[#3a853e]/15 dark:text-[#3a853e]' : ''}
                 ${isWrong ? 'bg-[#852419]/10 text-[#852419] dark:bg-[#852419]/15 dark:text-[#852419]' : ''}
-                ${!selected ? 'bg-zinc-50 text-zinc-800 hover:bg-indigo-50 hover:text-indigo-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-indigo-950 dark:hover:text-indigo-300' : ''}
-                ${selected && !isRight && !isWrong ? 'bg-zinc-50 text-zinc-400 dark:bg-zinc-900 dark:text-zinc-500' : ''}
+                ${!selected ? 'bg-[var(--color-surface-raised)] text-[var(--color-text)] hover:bg-[var(--color-primary)]/10 hover:text-[var(--color-primary)]' : ''}
+                ${selected && !isRight && !isWrong ? 'bg-[var(--color-surface)] text-[var(--color-text-dim)]' : ''}
               `}
             >
               <span className="font-semibold">{key}.</span> {value}
