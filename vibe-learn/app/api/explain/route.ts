@@ -4,14 +4,31 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(request: Request) {
   try {
-    const { code } = await request.json()
+    const {
+      code,
+      fullCode = '',
+      startLine,
+      endLine,
+      language = 'Plain Text',
+      scope = 'selection',
+    } = await request.json()
+
+    const lineContext =
+      typeof startLine === 'number' && typeof endLine === 'number'
+        ? `Selected lines: ${startLine}-${endLine}`
+        : 'Selected lines: not provided'
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1024,
+      max_tokens: 1400,
       system:
-        'Explain code to a beginner in plain English. Avoid jargon by default. Focus on what the selected code does, why it is there, and any important concepts the learner should know. Keep the response clean and readable: use short paragraphs, simple bullets only when helpful, and bold only for a few key terms. Do not use Markdown heading markers like # or ##, and do not wrap the answer in code fences.',
-      messages: [{ role: 'user', content: code }],
+        'Explain code to a beginner in plain English. Prioritize clear code understanding. Reference specific line numbers when provided. Explain what the selected block does, why it matters, and how it connects to the rest of the program. Avoid vague high-level summaries. Use short paragraphs and a few simple bullets when helpful. Bold only a few key terms. Do not use Markdown heading markers like # or ##, and do not wrap the answer in code fences.',
+      messages: [
+        {
+          role: 'user',
+          content: `Language: ${language}\nScope: ${scope}\n${lineContext}\n\nCode to explain:\n${code}\n\nFull program context:\n${fullCode}`,
+        },
+      ],
     })
 
     const explanation = message.content
