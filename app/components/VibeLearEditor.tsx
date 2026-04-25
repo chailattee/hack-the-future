@@ -752,7 +752,7 @@ export default function VibeLearEditor() {
         </div>
       ) : null}
 
-      <div className="flex flex-col overflow-hidden" style={{ flex: '1 1 0', minHeight: 0 }}>
+      <div className="relative flex flex-col overflow-hidden" style={{ flex: '1 1 0', minHeight: 0 }}>
         <div className="flex min-h-0 flex-1 flex-col gap-0 md:flex-row">
           <div className="relative min-h-0 flex-1 overflow-hidden border-r border-[var(--color-border)] bg-zinc-950">
             <Editor
@@ -771,7 +771,7 @@ export default function VibeLearEditor() {
                 minimap: { enabled: false },
                 fontSize: 14,
                 glyphMargin: true,
-                scrollBeyondLastLine: false,
+                scrollBeyondLastLine: quizQuestions.length > 0 && quizIndex < quizQuestions.length,
                 padding: { top: 16 },
                 automaticLayout: true,
               }}
@@ -950,7 +950,17 @@ export default function VibeLearEditor() {
             Quiz loading...
           </div>
         ) : null}
-        <QuizPanel code={code} isEnabled={quizQuestions.length > 0 && quizIndex < quizQuestions.length} quiz={quizQuestions[quizIndex] ?? null} onAnswer={handleAnswer} onEnd={() => { setQuizQuestions([]); setQuizIndex(0) }} />
+        <div className="absolute inset-x-0 bottom-0 z-50 pointer-events-none">
+          <div className="pointer-events-auto">
+            <QuizPanel
+              code={code}
+              isEnabled={quizQuestions.length > 0 && quizIndex < quizQuestions.length}
+              quiz={quizQuestions[quizIndex] ?? null}
+              onAnswer={handleAnswer}
+              onEnd={() => { setQuizQuestions([]); setQuizIndex(0) }}
+            />
+          </div>
+        </div>
       </div>
       <div className="flex items-center justify-between border-t border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-0.5 text-xs font-mono text-[var(--color-text-muted)] shrink-0">
         <span className="tracking-widest text-[var(--color-primary)]">
