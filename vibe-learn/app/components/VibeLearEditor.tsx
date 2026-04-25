@@ -809,7 +809,6 @@ export default function VibeLearEditor() {
                 Highlight code or use Explain Code for a beginner-friendly breakdown.
               </p>
             </div>
-
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-[var(--color-text)] text-sm leading-6">
               {selectedCode ? (
                 <div className="mb-4 pb-4">
