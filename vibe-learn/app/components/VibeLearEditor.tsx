@@ -700,13 +700,13 @@ export default function VibeLearEditor() {
 
       </div>
 
-      <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-zinc-50 px-5 py-2 text-xs text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-2 text-xs text-[var(--color-text-muted)]">
         <span>{editorStatus}</span>
         <button
           type="button"
           onClick={() => handleExplain('full')}
           disabled={!code.trim() || explaining}
-          className="rounded-none border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-raised)] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {explaining ? 'Explaining...' : 'Explain Code'}
         </button>
@@ -823,21 +823,21 @@ export default function VibeLearEditor() {
                   Explaining with AI...
                 </div>
               ) : explanation ? (
-                <div className="rounded-none bg-white p-3 dark:bg-zinc-950">
+                <div className="rounded-none bg-[var(--color-surface-raised)]">
                   <p className="mb-3 text-[var(--color-primary)] text-xs font-mono uppercase tracking-wider">
                     Explanation
                   </p>
                   <div className="space-y-3">{renderExplanation(explanation)}</div>
                 </div>
               ) : (
-                <div className="rounded-none bg-white p-4 text-[var(--color-text-muted)] text-sm italic dark:bg-zinc-950">
+                <div className="rounded-none bg-[var(--color-surface-raised)] p-4 text-[var(--color-text-muted)] text-sm italic dark:bg-zinc-950">
                   {code.trim()
                     ? 'Highlight code or click Explain Code to see a beginner-friendly explanation.'
                     : 'Upload code or generate something to begin.'}
                 </div>
               )}
 
-              <div className="mt-4 rounded-none bg-white p-3 dark:bg-zinc-950">
+              <div className="mt-4 rounded-none bg-[var(--color-surface-raised)]">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-[var(--color-primary)] text-xs font-mono uppercase tracking-wider">
                     Code review
@@ -883,19 +883,19 @@ export default function VibeLearEditor() {
                 )}
 
                 {improvementIssues.length ? (
-                  <details className="mt-3 rounded-none bg-zinc-50 p-3 dark:bg-zinc-900">
-                    <summary className="cursor-pointer text-xs font-semibold text-zinc-700 dark:text-zinc-200">
+                  <details className="mt-3 rounded-none bg-[var(--color-surface-raised)] p-3">
+                    <summary className="cursor-pointer text-xs font-semibold text-[var(--color-text-muted)]">
                       Optional improvements ({improvementIssues.length})
                     </summary>
                     <div className="mt-3 space-y-3">
                       {improvementIssues.map((issue, index) => (
                         <div
                           key={`${issue.lineNumber}-${issue.type}-${index}`}
-                          className="text-xs leading-5 text-zinc-700 dark:text-zinc-300"
+                          className="text-xs leading-5 text-[var(--color-text)]"
                         >
                           <div className="mb-1 flex flex-wrap items-center gap-2">
                             <span className="font-semibold">Line {issue.lineNumber}</span>
-                            <span className="rounded-none bg-zinc-200 px-2 py-0.5 font-medium uppercase tracking-wide text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+                            <span className="rounded-none bg-[var(--color-surface)] px-2 py-0.5 font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
                               {issue.type}
                             </span>
                           </div>
