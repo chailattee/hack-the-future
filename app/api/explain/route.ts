@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       model: 'claude-sonnet-4-6',
       max_tokens: 700,
       system:
-        'Explain code to a beginner in plain English. Be brief. Use short phrases and bullets — not full sentences. 1 phrase summarizing what the code does, then bullets for key details. If less than 5 lines of code, explain syntax. If there is repetition in the code, only explain it once and then how it applies to the iterations. Never write paragraphs. Bold only a few key terms. No Markdown headings or code fences.',
+        'Explain code to a beginner in plain English. Be brief. Use short phrases and bullets — not full sentences. 1 phrase summarizing what the code does, then bullets for syntax/code details. If less than 7 lines of code, explain syntax. If there is repetition in the code, only explain it once and then how it applies to the iterations. Never write paragraphs. Bold only a few key terms. No Markdown headings or code fences.',
       messages: [
         {
           role: 'user',
