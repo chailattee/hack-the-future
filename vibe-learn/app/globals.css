@@ -75,3 +75,10 @@ body {
 .vibe-issue-glyph-runtime::before {
   background: #f97316;
 }
+
+.monaco-editor,
+.monaco-editor-background,
+.overflow-guard {
+  height: 100% !important;
+  max-height: 100% !important;
+}
