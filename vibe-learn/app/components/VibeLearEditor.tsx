@@ -660,30 +660,25 @@ export default function VibeLearEditor() {
         className={`border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 ${hasCode ? 'py-2' : 'py-3'
           }`}
       >
-        <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+        <div className="grid gap-1 md:grid-cols-[1fr_1fr_auto]">
           {modeTabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => changeMode(tab.id)}
-              className={`rounded-md border px-3 py-2 text-left transition-colors ${mode === tab.id
+              className={`rounded-md border py-1.5 px-3 text-left transition-colors ${mode === tab.id
                 ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-text)]'
                 : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-surface-raised)]'
                 }`}
             >
-              <span className="block text-sm font-semibold">{tab.label}</span>
-              {!hasCode ? (
-                <span className="mt-0.5 block text-xs leading-4 text-[var(--color-text-muted)]">
-                  {tab.description}
-                </span>
-              ) : null}
+              <span className="block text-xs font-medium font-mono">{tab.label}</span>
             </button>
           ))}
           <button
             type="button"
             onClick={handleExport}
             disabled={!hasCode}
-            className="flex items-center gap-1.5 self-start rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-2 text-sm font-semibold text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex items-center gap-1.5 self-start rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] py-1.5 px-3 text-xs font-medium font-mono text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
