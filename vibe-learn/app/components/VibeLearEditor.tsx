@@ -4,6 +4,7 @@
 import type { ReactNode } from 'react'
 import { useState } from 'react'
 import Editor, { type OnMount } from '@monaco-editor/react'
+import QuizPanel from './QuizPanel'
 
 type ExplainButtonPosition = {
   top: number
@@ -300,6 +301,8 @@ export default function VibeLearEditor() {
           </div>
         </aside>
       </div>
+
+      <QuizPanel code={code} />
     </div>
   )
 }

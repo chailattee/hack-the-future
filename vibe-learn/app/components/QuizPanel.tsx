@@ -1,28 +1,49 @@
 'use client'
 
-// QUIZ TEAMMATE — this is your file.
-// Props you receive:
-//   code: the full generated code currently in the editor
-//   isEnabled: whether quiz mode is toggled on
-//
-// Your job:
-//   1. When isEnabled becomes true (and code is non-empty), POST to /api/quiz with { code }
-//   2. Render a question (multiple-choice or fill-in-the-blank) for the user to answer
-//   3. Show feedback after the user answers, then allow them to continue
-//   4. Create app/api/quiz/route.ts for the backend
+import { useState } from 'react'
 
 interface Props {
   code: string
-  isEnabled: boolean
 }
 
-export default function QuizPanel({ code, isEnabled }: Props) {
-  if (!isEnabled || !code) return null
+export default function QuizPanel({ code }: Props) {
+  const [isEnabled, setIsEnabled] = useState(false)
 
   return (
-    <div className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
-      {/* TODO: quiz UI goes here */}
-      <p className="text-sm text-zinc-400 dark:text-zinc-500 italic">Quiz mode is on — questions will appear here.</p>
-    </div>
+    <>
+      {/* Toggle fixed in top-right corner */}
+      <div className="fixed top-3 right-4 z-50 flex items-center gap-2">
+        <span className="text-sm text-zinc-500 dark:text-zinc-400">Quiz Mode</span>
+        <button
+          type="button"
+          onClick={() => setIsEnabled((prev) => !prev)}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+            isEnabled ? 'bg-indigo-600' : 'bg-zinc-300 dark:bg-zinc-700'
+          }`}
+          aria-pressed={isEnabled}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+              isEnabled ? 'translate-x-6' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
+
+      {/* Quiz content panel at bottom */}
+      {isEnabled && (
+        <div className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-4">
+          {code ? (
+            <p className="text-sm text-zinc-400 dark:text-zinc-500 italic">
+              Quiz mode is on — questions will appear here.
+            </p>
+          ) : (
+            <p className="text-sm text-zinc-400 dark:text-zinc-500 italic">
+              Generate some code first, then quiz mode will kick in.
+            </p>
+          )}
+        </div>
+      )}
+    </>
   )
 }
