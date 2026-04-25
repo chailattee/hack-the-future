@@ -10,7 +10,7 @@ export async function POST(request: Request) {
       model: 'claude-sonnet-4-6',
       max_tokens: 1024,
       system:
-        'Explain code to a beginner in plain English. Avoid jargon by default. Focus on what the selected code does, why it is there, and any important concepts the learner should know.',
+        'Explain code to a beginner in plain English. Avoid jargon by default. Focus on what the selected code does, why it is there, and any important concepts the learner should know. Keep the response clean and readable: use short paragraphs, simple bullets only when helpful, and bold only for a few key terms. Do not use Markdown heading markers like # or ##, and do not wrap the answer in code fences.',
       messages: [{ role: 'user', content: code }],
     })
 
