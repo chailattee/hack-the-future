@@ -1,40 +1,40 @@
 @import "tailwindcss";
 
 :root {
-  --background: #0f1623;
-  --foreground: #c9d1d9;
+  --background: #1c1c1c;
+  --foreground: #d4cfc9;
 }
 
 @theme {
   /* Base */
-  --color-bg: #0f1623;
-  --color-surface: #161d2e;
-  --color-surface-raised: #1e2739;
-  --color-border: rgba(255, 255, 255, 0.08);
+  --color-bg: #1c1c1c;
+  --color-surface: #242424;
+  --color-surface-raised: #2e2e2e;
+  --color-border: rgba(255, 255, 255, 0.06);
 
   /* Accent */
-  --color-primary: #4f92d9ff;
-  --color-primary-hover: #4c8bd8ff;
+  --color-primary: #d4a84b;
+  --color-primary-hover: #e0b96a;
 
   /* Text */
-  --color-text: #c9d1d9;
-  --color-text-muted: #6e7681;
-  --color-text-dim: #3d444d;
+  --color-text: #d4cfc9;
+  --color-text-muted: #7c7470;
+  --color-text-dim: #4a4542;
 
   /* Semantic */
-  --color-success: #3fb950;
-  --color-warning: #d29922;
-  --color-error: #ef4444;
+  --color-success: #7dac6e;
+  --color-warning: #d4a84b;
+  --color-error: #c95f5f;
 
   /* Font */
   --font-mono: "JetBrains Mono", "Fira Code", monospace;
-  --font-sans: "Inter", sans-serif;
+  --font-sans: "JetBrains Mono", "Fira Code", monospace;
 }
 
 body {
   background: var(--color-bg);
   color: var(--color-text);
-  font-family: var(--font-sans);
+  font-family: var(--font-mono);
 }
 
 .vibe-issue-line {
