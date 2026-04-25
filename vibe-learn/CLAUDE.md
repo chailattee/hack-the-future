@@ -11,20 +11,6 @@ A web-based IDE that lets you vibe code while learning — AI generates code, bu
 - **AI**: Anthropic SDK (`@anthropic-ai/sdk`), model `claude-sonnet-4-6`
 - **Deployment**: Vercel (auto-deploy from GitHub) — demo must be a live URL
 
-## Current State
-
-Steps 1–4 (P0) are complete. Working on step 5 (P1).
-
-| Priority | Feature | Status |
-|---|---|---|
-| P0 | Natural language → code generation | ✅ Done |
-| P0 | Language selector (JS / Python / TS / Java) | ✅ Done |
-| P0 | Click-to-explain (floating Explain button) | ✅ Done |
-| P1 | Quiz mode | 🚧 In progress |
-| P2 | Architecture explainer panel | Stretch |
-
-**Do not start quiz mode (P1) before click-to-explain (P0) works end-to-end.**
-
 ## File Map — who owns what
 
 | File | Feature | Notes |
@@ -40,11 +26,13 @@ Steps 1–4 (P0) are complete. Working on step 5 (P1).
 ## Key Implementation Details
 
 ### VibeLearEditor.tsx
-- All state lives here: `code`, `language`, `prompt`, `selectedCode`, `explanation`, `explainButtonPosition`
+- All state lives here: `code`, `language`, `prompt`, `selectedCode`, `explanation`, `explainButtonPosition`, `quizEnabled`, `settingsOpen`
 - Monaco is **editable** (`readOnly: false`) — users can modify generated code
 - Language dropdown updates syntax highlighting immediately via `language={language.toLowerCase()}` prop (not `defaultLanguage`)
 - Floating "Explain" button appears at cursor position after selection using `editor.getScrolledVisiblePosition()`
 - `renderExplanation()` parses markdown-like formatting (bold, code, bullets) into React nodes
+- Settings gear icon (top-right of header) opens a dropdown with a quiz mode toggle; click-outside closes it via `useEffect` + `useRef`
+- `QuizPanel` is rendered at the bottom of the page, receives `code` and `isEnabled={quizEnabled}`
 
 ### API Routes — all follow the same pattern
 ```
@@ -71,3 +59,4 @@ Each teammate works in their own files. The quiz teammate only touches:
 - All interactive UI in client components (`'use client'`)
 - Never commit `.env.local`
 - Before writing any Next.js-specific code, check `node_modules/next/dist/docs/`
+- **Desktop only** — do not add mobile/responsive handling. This is a desktop web app. Ignore mobile breakpoints and layout concerns.
