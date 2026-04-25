@@ -22,7 +22,7 @@ export async function POST(request: Request) {
       model: 'claude-sonnet-4-6',
       max_tokens: 700,
       system:
-        'Explain code to a beginner in plain English. Reference specific line numbers when provided. Explain what the selected block does, why it matters, and how it connects to the rest of the program. Be concise — aim for 2–4 short paragraphs or a short paragraph plus a few bullets. Cut any sentence that does not add new understanding. Bold only a few key terms. Do not use Markdown heading markers like # or ##, and do not wrap the answer in code fences.',
+        'Explain code to a beginner in plain English. Be brief — 3 sentences maximum, or 2 sentences plus up to 3 bullets for longer selections. Explain what the code does and why it matters. Cut everything else. Bold only a few key terms. No Markdown headings or code fences.',
       messages: [
         {
           role: 'user',
