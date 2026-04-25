@@ -848,31 +848,31 @@ export default function VibeLearEditor() {
           </div>
 
           <aside
-            className="flex max-w-full flex-col border-t border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 md:border-t-0 md:shrink-0"
+            className="flex max-w-full flex-col md:border-t-0 md:shrink-0 bg-[var(--color-surface)] border-l border-[var(--color-border)] text-[var(--color-text)]"
             style={{ width: sidebarWidth }}
           >
-            <div className="border-b border-zinc-200 bg-white px-5 py-3 dark:border-zinc-800 dark:bg-zinc-950">
-              <p className="text-xs font-medium uppercase tracking-wide text-indigo-600 dark:text-indigo-300">
+            <div className="border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-3">
+              <p className="text-[var(--color-primary)] text-xs font-mono uppercase tracking-wider">
                 AI help
               </p>
-              <h2 className="mt-1 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+              <h2 className="mt-1 text-base font-semibold text-[var(--color-text)]">
                 Explanations and issues
               </h2>
-              <p className="mt-1 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
+              <p className="mt-1 leading-5 text-[var(--color-text-muted)] text-sm italic">
                 Highlight code or use Explain Code for a beginner-friendly breakdown.
               </p>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-[var(--color-text)] text-sm leading-6">
               {selectedCode ? (
                 <div className="mb-4 border-b border-zinc-200 pb-4 dark:border-zinc-800">
-                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  <p className="mb-2 text-[var(--color-primary)] text-xs font-mono uppercase tracking-wider">
                     Selected code
                     {selectedRange
                       ? `, lines ${selectedRange.startLine}-${selectedRange.endLine}`
                       : ''}
                   </p>
-                  <pre className="max-h-28 overflow-auto rounded-md border border-zinc-200 bg-white p-3 font-mono text-xs leading-5 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
+                  <pre className="max-h-28 overflow-auto bg-[var(--color-surface-raised)] font-mono text-xs rounded p-2">
                     {selectedCode}
                   </pre>
                 </div>
@@ -884,13 +884,13 @@ export default function VibeLearEditor() {
                 </div>
               ) : explanation ? (
                 <div className="rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
-                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  <p className="mb-3 text-[var(--color-primary)] text-xs font-mono uppercase tracking-wider">
                     Explanation
                   </p>
                   <div className="space-y-3">{renderExplanation(explanation)}</div>
                 </div>
               ) : (
-                <div className="rounded-md border border-dashed border-zinc-300 bg-white p-4 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400">
+                <div className="rounded-md border border-dashed border-zinc-300 bg-white p-4 text-[var(--color-text-muted)] text-sm italic dark:border-zinc-700 dark:bg-zinc-950">
                   {code.trim()
                     ? 'Highlight code or click Explain Code to see a beginner-friendly explanation.'
                     : 'Upload code or generate something to begin.'}
@@ -899,18 +899,18 @@ export default function VibeLearEditor() {
 
               <div className="mt-4 rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  <p className="text-[var(--color-primary)] text-xs font-mono uppercase tracking-wider">
                     Code review
                   </p>
                   {analyzingIssues ? (
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                    <span className="text-[var(--color-text-muted)] text-sm italic">
                       Checking...
                     </span>
                   ) : null}
                 </div>
 
                 {issueAnalysisError ? (
-                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="mt-2 text-[var(--color-text-muted)] text-sm italic">
                     {issueAnalysisError}
                   </p>
                 ) : errorIssues.length ? (
@@ -935,7 +935,7 @@ export default function VibeLearEditor() {
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="mt-2 text-[var(--color-text-muted)] text-sm italic">
                     {code.trim()
                       ? 'No syntax or runtime errors found.'
                       : 'Add code to check for errors.'}
