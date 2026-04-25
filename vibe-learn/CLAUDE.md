@@ -11,20 +11,6 @@ A web-based IDE that lets you vibe code while learning — AI generates code, bu
 - **AI**: Anthropic SDK (`@anthropic-ai/sdk`), model `claude-sonnet-4-6`
 - **Deployment**: Vercel (auto-deploy from GitHub) — demo must be a live URL
 
-## Current State
-
-Steps 1–4 (P0) are complete. Working on step 5 (P1).
-
-| Priority | Feature | Status |
-|---|---|---|
-| P0 | Natural language → code generation | ✅ Done |
-| P0 | Language selector (JS / Python / TS / Java) | ✅ Done |
-| P0 | Click-to-explain (floating Explain button) | ✅ Done |
-| P1 | Quiz mode | 🚧 In progress |
-| P2 | Architecture explainer panel | Stretch |
-
-**Do not start quiz mode (P1) before click-to-explain (P0) works end-to-end.**
-
 ## File Map — who owns what
 
 | File | Feature | Notes |
