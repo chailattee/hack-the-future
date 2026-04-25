@@ -85,6 +85,7 @@ export default function VibeLearEditor() {
   const [explainButtonPosition, setExplainButtonPosition] =
     useState<ExplainButtonPosition | null>(null)
   const [quizEnabled, setQuizEnabled] = useState(false)
+  const [quiz, setQuiz] = useState<{ question: string; options: { A: string; B: string; C: string; D: string }; answer: string } | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
 
@@ -150,11 +151,12 @@ export default function VibeLearEditor() {
     if (!prompt.trim()) return
     setLoading(true)
     setError('')
+    setQuiz(null)
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, language }),
+        body: JSON.stringify({ prompt, language, quizMode: quizEnabled }),
       })
       const data = await res.json()
       if (data.error) {
@@ -165,6 +167,31 @@ export default function VibeLearEditor() {
       setSelectedCode('')
       setExplainButtonPosition(null)
       setExplanation('')
+      if (data.quiz) setQuiz(data.quiz)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleAnswer(selected: string) {
+    if (!quiz) return
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, language, quizMode: true, priorCode: code, userAnswer: selected }),
+      })
+      const data = await res.json()
+      if (data.error) {
+        setError(data.error)
+        return
+      }
+      setCode((prev) => prev + '\n' + data.code)
+      setQuiz(data.quiz ?? null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -353,7 +380,7 @@ export default function VibeLearEditor() {
         </aside>
       </div>
 
-      <QuizPanel code={code} isEnabled={quizEnabled} />
+      <QuizPanel code={code} isEnabled={quizEnabled} quiz={quiz} onAnswer={handleAnswer} />
     </div>
   )
 }
