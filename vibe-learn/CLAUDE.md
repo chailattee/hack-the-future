@@ -6,49 +6,68 @@ A web-based IDE that lets you vibe code while learning — AI generates code, bu
 
 ## Tech Stack
 
-- **Framework**: Next.js (App Router) — read `node_modules/next/dist/docs/` before writing any Next.js code
+- **Framework**: Next.js 16 (App Router) — read `node_modules/next/dist/docs/` before writing any Next.js code
 - **Editor**: Monaco Editor via `@monaco-editor/react`
-- **AI**: Anthropic SDK (`@anthropic-ai/sdk`), model `claude-sonnet-4-20250514`
+- **AI**: Anthropic SDK (`@anthropic-ai/sdk`), model `claude-sonnet-4-6`
 - **Deployment**: Vercel (auto-deploy from GitHub) — demo must be a live URL
 
 ## Current State
 
-Steps 1–3 are complete:
-- Monaco editor renders in `app/components/VibeLearEditor.tsx` (client component)
-- Prompt input + Generate button at the top
-- `POST /api/generate` calls Anthropic, returns code into the editor
-
-## Feature Priority
+Steps 1–4 (P0) are complete. Working on step 5 (P1).
 
 | Priority | Feature | Status |
 |---|---|---|
 | P0 | Natural language → code generation | ✅ Done |
-| P0 | Click-to-explain | Next |
-| P1 | Quiz mode | After click-to-explain works end-to-end |
+| P0 | Language selector (JS / Python / TS / Java) | ✅ Done |
+| P0 | Click-to-explain (floating Explain button) | ✅ Done |
+| P1 | Quiz mode | 🚧 In progress |
 | P2 | Architecture explainer panel | Stretch |
 
 **Do not start quiz mode (P1) before click-to-explain (P0) works end-to-end.**
 
-## Key Files
+## File Map — who owns what
 
-- `app/components/VibeLearEditor.tsx` — main client component (editor + prompt form)
-- `app/api/generate/route.ts` — code generation API route
-- `app/page.tsx` — renders `<VibeLearEditor />`
-- `app/layout.tsx` — root layout with Geist fonts
-- `.env.local` — `ANTHROPIC_API_KEY` (never commit)
+| File | Feature | Notes |
+|---|---|---|
+| `app/components/VibeLearEditor.tsx` | Main layout + all shared state | Monolithic by choice — teammates rewrote it; editor is now editable (readOnly: false) |
+| `app/components/CodeEditor.tsx` | Monaco wrapper (unused — logic inlined into VibeLearEditor) | Keep for reference |
+| `app/components/ExplainSidebar.tsx` | Sidebar shell (unused — explain inlined into VibeLearEditor) | Keep for reference |
+| `app/components/QuizPanel.tsx` | Quiz mode UI | **Quiz teammate's file** |
+| `app/api/generate/route.ts` | Code generation | Accepts `{ prompt, language }`, returns `{ code }` |
+| `app/api/explain/route.ts` | Click-to-explain | Accepts `{ code }`, returns `{ explanation }` |
+| `app/api/quiz/route.ts` | Quiz mode backend | **Quiz teammate's file** — placeholder, returns 501 |
 
-## Click-to-Explain (next feature)
+## Key Implementation Details
 
-When the user selects text in the Monaco editor, a sidebar or popover should show a plain-English explanation of what that code does and why it's there.
+### VibeLearEditor.tsx
+- All state lives here: `code`, `language`, `prompt`, `selectedCode`, `explanation`, `explainButtonPosition`
+- Monaco is **editable** (`readOnly: false`) — users can modify generated code
+- Language dropdown updates syntax highlighting immediately via `language={language.toLowerCase()}` prop (not `defaultLanguage`)
+- Floating "Explain" button appears at cursor position after selection using `editor.getScrolledVisiblePosition()`
+- `renderExplanation()` parses markdown-like formatting (bold, code, bullets) into React nodes
 
-- Use Monaco's `onDidChangeCursorSelection` to capture the selected text
-- Wire selection to a new API route `POST /api/explain` — same pattern as `/api/generate`
-- System prompt: explain to a beginner, no jargon, focus on *what it does* and *why it's there*
-- Render explanation in a sidebar panel next to the editor
+### API Routes — all follow the same pattern
+```
+POST body → Anthropic claude-sonnet-4-6 → strip markdown fences → return JSON
+```
+- `generate`: system prompt includes the selected language; strips ` ``` ` fences defensively
+- `explain`: system prompt instructs plain-English, no jargon, no heading markers, no code fences in response
+- `quiz`: TODO — stub only
+
+### Avoiding merge conflicts
+Each teammate works in their own files. The quiz teammate only touches:
+- `app/components/QuizPanel.tsx`
+- `app/api/quiz/route.ts`
+
+`QuizPanel` receives `{ code: string, isEnabled: boolean }` as props from `VibeLearEditor`.
+
+## Environment
+- `ANTHROPIC_API_KEY` in `.env.local` (never commit — already in `.gitignore` via `.env*`)
+- Dev: `npm run dev` at `http://localhost:3000`
 
 ## Constraints
-
 - Explanations must be beginner-friendly — no jargon by default
 - Keep API routes thin: parse body, call Anthropic, return JSON
-- All new interactive UI goes in client components (`'use client'`)
-- Do not store secrets anywhere except `.env.local`
+- All interactive UI in client components (`'use client'`)
+- Never commit `.env.local`
+- Before writing any Next.js-specific code, check `node_modules/next/dist/docs/`
