@@ -5,10 +5,11 @@ import Editor from '@monaco-editor/react'
 
 interface Props {
   code: string
+  language: string
   onSelectionChange: (text: string) => void
 }
 
-export default function CodeEditor({ code, onSelectionChange }: Props) {
+export default function CodeEditor({ code, language, onSelectionChange }: Props) {
   const editorRef = useRef<any>(null)
 
   function handleMount(editor: any) {
@@ -23,7 +24,7 @@ export default function CodeEditor({ code, onSelectionChange }: Props) {
   return (
     <Editor
       height="100%"
-      defaultLanguage="javascript"
+      language={language}
       value={code}
       onMount={handleMount}
       options={{

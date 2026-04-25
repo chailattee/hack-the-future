@@ -4,12 +4,12 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(request: Request) {
   try {
-    const { prompt } = await request.json()
+    const { prompt, language = 'JavaScript' } = await request.json()
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 4096,
-      system: 'You are a JavaScript code generator. Output only valid JavaScript code — no markdown, no backticks, no code fences, no comments, no explanation. Just the raw JS code itself.',
+      system: `You are a ${language} code generator. Output only valid ${language} code — no markdown, no backticks, no code fences, no comments, no explanation. Just the raw ${language} code itself.`,
       messages: [{ role: 'user', content: prompt }],
     })
 
