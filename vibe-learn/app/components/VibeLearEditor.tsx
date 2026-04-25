@@ -75,6 +75,7 @@ function renderExplanation(explanation: string) {
 export default function VibeLearEditor() {
   const [prompt, setPrompt] = useState('')
   const [code, setCode] = useState('')
+  const [language, setLanguage] = useState('JavaScript')
   const [loading, setLoading] = useState(false)
   const [selectedCode, setSelectedCode] = useState('')
   const [explanation, setExplanation] = useState('')
@@ -139,7 +140,7 @@ export default function VibeLearEditor() {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt, language }),
       })
       const data = await res.json()
       if (data.error) {
@@ -202,6 +203,15 @@ export default function VibeLearEditor() {
           placeholder="What do you want to build?"
           className="min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm placeholder-zinc-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
         />
+        <select
+          value={language}
+          onChange={(e) => setLanguage(e.target.value)}
+          className="rounded-md border border-zinc-300 bg-white px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+        >
+          {['JavaScript', 'Python', 'TypeScript', 'Java'].map((lang) => (
+            <option key={lang} value={lang}>{lang}</option>
+          ))}
+        </select>
         <button
           type="submit"
           disabled={loading}
@@ -221,7 +231,7 @@ export default function VibeLearEditor() {
         <div className="relative min-h-[360px] flex-1 overflow-hidden border-r border-zinc-800 bg-zinc-950">
           <Editor
             height="100%"
-            defaultLanguage="javascript"
+            language={language.toLowerCase()}
             value={code}
             onChange={(value) => setCode(value ?? '')}
             onMount={handleEditorMount}
