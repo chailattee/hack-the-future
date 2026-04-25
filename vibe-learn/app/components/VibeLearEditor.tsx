@@ -702,14 +702,24 @@ export default function VibeLearEditor() {
 
       <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-2 text-xs text-[var(--color-text-muted)]">
         <span>{editorStatus}</span>
-        <button
-          type="button"
-          onClick={() => handleExplain('full')}
-          disabled={!code.trim() || explaining}
-          className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-raised)] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {explaining ? 'Explaining...' : 'Explain Code'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => handleExplain('full')}
+            disabled={!code.trim() || explaining}
+            className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-raised)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {explaining ? 'Explaining...' : 'Explain Code'}
+          </button>
+          <button
+            type="button"
+            onClick={handleLaunchQuiz}
+            disabled={!code.trim()}
+            className="rounded-none border border-[var(--color-primary)]/40 bg-[var(--color-surface-raised)] px-3 py-1.5 text-xs font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/10 disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            Quiz
+          </button>
+        </div>
       </div>
 
       {error ? (
@@ -795,10 +805,7 @@ export default function VibeLearEditor() {
               <p className="text-[var(--color-primary)] text-xs font-mono uppercase tracking-wider">
                 AI help
               </p>
-              <h2 className="mt-1 text-sm font-mono font-medium whitespace-nowrap text-[var(--color-text)]">
-                Explanations and issues
-              </h2>
-              <p className="mt-1 leading-5 text-[var(--color-text-muted)] text-sm italic">
+              <p className="mt-1 leading-5 text-[var(--color-text-muted)] text-xs italic">
                 Highlight code or use Explain Code for a beginner-friendly breakdown.
               </p>
             </div>
@@ -830,27 +837,27 @@ export default function VibeLearEditor() {
                   <div className="space-y-3">{renderExplanation(explanation)}</div>
                 </div>
               ) : (
-                <div className="rounded-none bg-[var(--color-surface-raised)] p-4 text-[var(--color-text-muted)] text-sm italic dark:bg-zinc-950">
+                <div className="rounded-none bg-[var(--color-surface-raised)] p-4 text-[var(--color-text-muted)] text-xs italic dark:bg-zinc-950">
                   {code.trim()
                     ? 'Highlight code or click Explain Code to see a beginner-friendly explanation.'
                     : 'Upload code or generate something to begin.'}
                 </div>
               )}
 
-              <div className="mt-4 rounded-none bg-[var(--color-surface-raised)]">
+              <div className="mt-4 rounded-none bg-[var(--color-surface-raised)] p-3">
                 <div className="flex items-center justify-between gap-3">
                   <p className="text-[var(--color-primary)] text-xs font-mono uppercase tracking-wider">
                     Code review
                   </p>
                   {analyzingIssues ? (
-                    <span className="text-[var(--color-text-muted)] text-sm italic">
+                    <span className="text-[var(--color-text-muted)] text-xs italic">
                       Checking...
                     </span>
                   ) : null}
                 </div>
 
                 {issueAnalysisError ? (
-                  <p className="mt-2 text-[var(--color-text-muted)] text-sm italic">
+                  <p className="mt-2 text-[var(--color-text-muted)] text-xs italic">
                     {issueAnalysisError}
                   </p>
                 ) : errorIssues.length ? (
@@ -875,7 +882,7 @@ export default function VibeLearEditor() {
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-2 text-[var(--color-text-muted)] text-sm italic">
+                  <p className="mt-2 text-[var(--color-text-muted)] text-xs italic">
                     {code.trim()
                       ? 'No syntax or runtime errors found.'
                       : 'Add code to check for errors.'}
@@ -931,13 +938,12 @@ export default function VibeLearEditor() {
               <option key={lang} value={lang}>{lang}</option>
             ))}
           </select>
-          <button
-            onClick={handleLaunchQuiz}
-            disabled={!code}
-            className="hover:text-[var(--color-text)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-          >
-            QUIZ
-          </button>
+          <span className={quizQuestions.length > 0 && quizIndex < quizQuestions.length
+            ? "text-[var(--color-primary)]"
+            : "text-[var(--color-text-dim)]"
+          }>
+            QUIZ: {quizQuestions.length > 0 && quizIndex < quizQuestions.length ? "ON" : "OFF"}
+          </span>
         </div>
       </div>
     </div>
