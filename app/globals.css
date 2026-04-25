@@ -1,0 +1,84 @@
+@import "tailwindcss";
+@variant dark (&:is(.dark *));
+
+:root {
+  --background: #1c1c1c;
+  --foreground: #d4cfc9;
+}
+
+@theme {
+  /* Base */
+  --color-bg: #1c1c1c;
+  --color-surface: #242424;
+  --color-surface-raised: #2e2e2e;
+  --color-border: rgba(255, 255, 255, 0.06);
+
+  /* Accent */
+  --color-primary: #d4a84b;
+  --color-primary-hover: #e0b96a;
+
+  /* Text */
+  --color-text: #d4cfc9;
+  --color-text-muted: #7c7470;
+  --color-text-dim: #4a4542;
+
+  /* Semantic */
+  --color-success: #7dac6e;
+  --color-warning: #d4a84b;
+  --color-error: #c95f5f;
+
+  /* Font */
+  --font-mono: "JetBrains Mono", "Fira Code", monospace;
+  --font-sans: "JetBrains Mono", "Fira Code", monospace;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+}
+
+.vibe-issue-line {
+  background: rgba(239, 68, 68, 0.16);
+  border-left: 3px solid rgba(239, 68, 68, 0.9);
+}
+
+.vibe-issue-syntax {
+  background: rgba(239, 68, 68, 0.16);
+  border-left-color: rgba(239, 68, 68, 0.9);
+}
+
+.vibe-issue-runtime {
+  background: rgba(249, 115, 22, 0.16);
+  border-left-color: rgba(249, 115, 22, 0.9);
+}
+
+.vibe-issue-glyph::before {
+  content: "!";
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+}
+
+.vibe-issue-glyph-syntax::before {
+  background: #ef4444;
+}
+
+.vibe-issue-glyph-runtime::before {
+  background: #f97316;
+}
+
+.monaco-editor,
+.monaco-editor-background,
+.overflow-guard {
+  height: 100% !important;
+  max-height: 100% !important;
+}
