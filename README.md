@@ -18,6 +18,10 @@ Most coding tools assume you already know what you're doing. trace flips that. Y
 
 Next.js 16 (App Router), Monaco Editor, Anthropic Claude Sonnet 4.6, Tailwind CSS, deployed on Vercel.
 
+## Preview 
+<img width="1173" height="653" alt="Screenshot 2026-04-25 at 12 19 34 PM" src="https://github.com/user-attachments/assets/33edcf2e-3138-4942-8626-7507013db7cd" />
+
+
 ## Getting Started
 
 ```bash
