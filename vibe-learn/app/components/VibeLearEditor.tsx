@@ -11,15 +11,7 @@ type ExplainButtonPosition = {
   left: number
 }
 
-type Mode = 'generate' | 'upload' | 'add'
-type AddCodeAction = 'replace' | 'append' | 'insert'
-
-type PendingCodeAddition = {
-  text: string
-  source: 'paste' | 'upload'
-  fileName?: string
-  language?: string
-}
+type Mode = 'generate' | 'upload'
 
 type CodeIssue = {
   lineNumber: number
@@ -57,11 +49,6 @@ const modeTabs: Array<{ id: Mode; label: string; description: string }> = [
     id: 'upload',
     label: 'Upload/Paste existing code',
     description: 'Start from classwork, notes, or a code file.',
-  },
-  {
-    id: 'add',
-    label: 'Add to current code',
-    description: 'Bring in more code without losing what is in the editor.',
   },
 ]
 const acceptedFileExtensions = [
@@ -107,6 +94,19 @@ function getLanguageFromFileName(fileName: string) {
     case 'txt':
     default:
       return 'Plain Text'
+  }
+}
+
+function getExportExtension(languageName: string) {
+  switch (languageName) {
+    case 'JavaScript': return 'js'
+    case 'TypeScript': return 'ts'
+    case 'Python': return 'py'
+    case 'Java': return 'java'
+    case 'HTML': return 'html'
+    case 'CSS': return 'css'
+    case 'Markdown': return 'md'
+    default: return 'txt'
   }
 }
 
@@ -209,8 +209,6 @@ export default function VibeLearEditor() {
   const [code, setCode] = useState('')
   const [language, setLanguage] = useState('JavaScript')
   const [pastedCode, setPastedCode] = useState('')
-  const [pendingCodeAddition, setPendingCodeAddition] =
-    useState<PendingCodeAddition | null>(null)
   const [uploadedFileName, setUploadedFileName] = useState('')
   const [loading, setLoading] = useState(false)
   const [selectedCode, setSelectedCode] = useState('')
@@ -223,15 +221,29 @@ export default function VibeLearEditor() {
   const [error, setError] = useState('')
   const [explainButtonPosition, setExplainButtonPosition] =
     useState<ExplainButtonPosition | null>(null)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [quizEnabled, setQuizEnabled] = useState(false)
   const editorRef = useRef<MonacoEditor | null>(null)
   const monacoRef = useRef<Monaco | null>(null)
   const issueDecorationsRef = useRef<DecorationsCollection | null>(null)
   const issueAnalysisIdRef = useRef(0)
   const programmaticCodeUpdateRef = useRef(false)
+  const settingsRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     applyIssueDecorations(issues)
   }, [issues])
+
+  useEffect(() => {
+    if (!settingsOpen) return
+    function handleClickOutside(e: MouseEvent) {
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+        setSettingsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [settingsOpen])
 
   function applyIssueDecorations(nextIssues: CodeIssue[]) {
     const editor = editorRef.current
@@ -293,8 +305,19 @@ export default function VibeLearEditor() {
 
   function changeMode(nextMode: Mode) {
     setMode(nextMode)
-    setPendingCodeAddition(null)
     setError('')
+  }
+
+  function handleExport() {
+    if (!code.trim()) return
+    const ext = getExportExtension(language)
+    const blob = new Blob([code], { type: 'text/plain' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `code.${ext}`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   async function analyzeCodeForIssues(
@@ -422,7 +445,6 @@ export default function VibeLearEditor() {
       updateEditorCode(generatedCode)
       resetLearningState()
       setUploadedFileName('')
-      setPendingCodeAddition(null)
       analyzeCodeForIssues(generatedCode, language, 'generated')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
@@ -433,54 +455,12 @@ export default function VibeLearEditor() {
 
   function handleLoadPastedCode() {
     const cleanedPastedCode = stripCodeFenceLines(pastedCode)
-
     if (!cleanedPastedCode.trim()) return
-
-    if (mode === 'add' && code.trim()) {
-      setPendingCodeAddition({ text: cleanedPastedCode, source: 'paste' })
-      setError('')
-      return
-    }
-
-    applyCodeAddition(
-      {
-        text: cleanedPastedCode,
-        source: 'paste',
-      },
-      'replace',
-    )
-  }
-
-  function applyCodeAddition(
-    addition: PendingCodeAddition | null,
-    action: AddCodeAction,
-  ) {
-    if (!addition?.text.trim()) return
-
-    const editor = editorRef.current
-    const model = editor?.getModel()
-    const selection = editor?.getSelection()
-    const insertOffset =
-      model && selection ? model.getOffsetAt(selection.getStartPosition()) : code.length
-
-    const nextCode =
-      action === 'append' && code.trim()
-        ? `${code.trimEnd()}\n\n${addition.text}`
-        : action === 'insert' && code
-          ? `${code.slice(0, insertOffset)}${addition.text}${code.slice(insertOffset)}`
-          : addition.text
-    const nextLanguage = addition.language && (action === 'replace' || !code.trim())
-      ? addition.language
-      : language
-
-    updateEditorCode(nextCode)
+    updateEditorCode(cleanedPastedCode)
     resetLearningState()
     setError('')
-    setUploadedFileName(addition.source === 'upload' ? addition.fileName ?? '' : '')
-    setPendingCodeAddition(null)
-
-    if (nextLanguage !== language) setLanguage(nextLanguage)
-    analyzeCodeForIssues(nextCode, nextLanguage, 'user')
+    setUploadedFileName('')
+    analyzeCodeForIssues(cleanedPastedCode, language, 'user')
   }
 
   async function handleFileUpload(file: File | undefined) {
@@ -499,19 +479,13 @@ export default function VibeLearEditor() {
     try {
       const text = stripCodeFenceLines(await file.text())
       setPastedCode(text)
-      const incomingCode = {
-        text,
-        source: 'upload' as const,
-        fileName: file.name,
-        language: getLanguageFromFileName(file.name),
-      }
-
-      if (mode === 'add' && code.trim()) {
-        setPendingCodeAddition(incomingCode)
-        return
-      }
-
-      applyCodeAddition(incomingCode, 'replace')
+      const nextLanguage = getLanguageFromFileName(file.name)
+      updateEditorCode(text)
+      resetLearningState()
+      setError('')
+      setUploadedFileName(file.name)
+      if (nextLanguage !== language) setLanguage(nextLanguage)
+      analyzeCodeForIssues(text, nextLanguage, 'user')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not read that file')
     }
@@ -621,7 +595,7 @@ export default function VibeLearEditor() {
           hasCode ? 'py-2' : 'py-3'
         }`}
       >
-        <div className="grid gap-2 md:grid-cols-3">
+        <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
           {modeTabs.map((tab) => (
             <button
               key={tab.id}
@@ -641,6 +615,19 @@ export default function VibeLearEditor() {
               ) : null}
             </button>
           ))}
+          <button
+            type="button"
+            onClick={handleExport}
+            disabled={!hasCode}
+            className="flex items-center gap-1.5 self-start rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            Export .{getExportExtension(language)}
+          </button>
         </div>
 
         {mode === 'generate' ? (
@@ -695,12 +682,7 @@ export default function VibeLearEditor() {
               </label>
               <textarea
                 value={pastedCode}
-                onChange={(e) => {
-                  setPastedCode(e.target.value)
-                  if (pendingCodeAddition?.source === 'paste') {
-                    setPendingCodeAddition(null)
-                  }
-                }}
+                onChange={(e) => setPastedCode(e.target.value)}
                 placeholder="Paste code or classwork text here."
                 className={`w-full resize-y rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono text-xs leading-5 text-zinc-900 placeholder-zinc-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 ${
                   hasCode ? 'h-20' : 'h-32'
@@ -720,47 +702,6 @@ export default function VibeLearEditor() {
           </div>
         )}
 
-        {mode === 'add' && pendingCodeAddition ? (
-          <div className="mt-3 flex flex-col gap-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-900/60 dark:bg-amber-950 dark:text-amber-100 sm:flex-row sm:items-center sm:justify-between">
-            <p>
-              The editor already has code. Add{' '}
-              {pendingCodeAddition.source === 'upload'
-                ? pendingCodeAddition.fileName ?? 'the uploaded file'
-                : 'your pasted text'}{' '}
-              by replacing, appending below, or inserting at the cursor?
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => applyCodeAddition(pendingCodeAddition, 'replace')}
-                className="rounded-md bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-amber-800"
-              >
-                Replace current code
-              </button>
-              <button
-                type="button"
-                onClick={() => applyCodeAddition(pendingCodeAddition, 'append')}
-                className="rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100 dark:hover:bg-amber-900"
-              >
-                Append below current code
-              </button>
-              <button
-                type="button"
-                onClick={() => applyCodeAddition(pendingCodeAddition, 'insert')}
-                className="rounded-md border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-900 transition-colors hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100 dark:hover:bg-amber-900"
-              >
-                Insert at cursor position
-              </button>
-              <button
-                type="button"
-                onClick={() => setPendingCodeAddition(null)}
-                className="rounded-md px-3 py-1.5 text-xs font-semibold text-amber-900 transition-colors hover:bg-amber-100 dark:text-amber-100 dark:hover:bg-amber-900"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        ) : null}
       </div>
 
       <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-5 py-2 text-xs text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
