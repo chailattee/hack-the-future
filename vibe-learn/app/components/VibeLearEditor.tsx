@@ -607,12 +607,12 @@ export default function VibeLearEditor() {
   }
 
   const editorStatus = loading
-    ? 'Generating code...'
+    ? 'generating code...'
     : analyzingIssues
-      ? 'Checking for likely issues...'
+      ? 'checking for likely issues...'
       : code
         ? `${uploadedFileName ? `${uploadedFileName} loaded` : `${language} code loaded`} in the editor.`
-        : 'No code loaded yet.'
+        : 'no code loaded yet.'
   const hasCode = code.trim().length > 0
   const errorIssues = issues.filter(
     (issue) => issue.type === 'syntax' || issue.type === 'runtime',
@@ -622,7 +622,7 @@ export default function VibeLearEditor() {
   )
 
   return (
-    <div className="flex h-full flex-col bg-zinc-100 text-[#d4a84b] dark:bg-zinc-950 dark:text-zinc-50">
+    <div className="flex h-full flex-col bg-[var(--color-bg)] text-[var(--color-text)]">
       <header className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-2.5">
         <div>
           <span className="text-lg font-semibold tracking-tight">trace</span>
@@ -633,7 +633,7 @@ export default function VibeLearEditor() {
         className={`border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 ${hasCode ? 'py-2' : 'py-3'
           }`}
       >
-        <div className="grid gap-1 md:grid-cols-[1fr_1fr_auto]">
+        <div className="grid gap-1 md:grid-cols-[1fr_1fr_auto] h-8 shrink-0 whitespace-nowrap overflow-hidden">
           {modeTabs.map((tab) => (
             <button
               key={tab.id}
@@ -724,9 +724,9 @@ export default function VibeLearEditor() {
 
       </div>
 
-      <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-2 text-xs text-[var(--color-text-muted)]">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-2 text-xs text-[var(--color-text-muted)] ">
         <span>{editorStatus}</span>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 h-8 shrink-0 whitespace-nowrap overflow-hidden">
           <button
             type="button"
             onClick={() => handleExplain('full')}
@@ -822,7 +822,7 @@ export default function VibeLearEditor() {
           </div>
 
           <aside
-            className="flex max-w-full flex-col md:border-t-0 md:shrink-0 bg-[var(--color-surface)] border-l border-[var(--color-border)] text-[var(--color-text)]"
+            className="flex max-w-full flex-col md:border-t-0 md:shrink-0 bg-[var(--color-surface)] border-l border-[var(--color-border)] text-[var(--color-text)]  h-full overflow-hidden"
             style={{ width: sidebarWidth }}
           >
             <div className="bg-[var(--color-surface)] px-5 py-3">
