@@ -73,3 +73,4 @@ Each teammate works in their own files. The quiz teammate only touches:
 - All interactive UI in client components (`'use client'`)
 - Never commit `.env.local`
 - Before writing any Next.js-specific code, check `node_modules/next/dist/docs/`
+- **Desktop only** — do not add mobile/responsive handling. This is a desktop web app. Ignore mobile breakpoints and layout concerns.

@@ -223,12 +223,17 @@ export default function VibeLearEditor() {
     useState<ExplainButtonPosition | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [quizEnabled, setQuizEnabled] = useState(false)
+  const [sidebarWidth, setSidebarWidth] = useState(384)
   const editorRef = useRef<MonacoEditor | null>(null)
   const monacoRef = useRef<Monaco | null>(null)
   const issueDecorationsRef = useRef<DecorationsCollection | null>(null)
   const issueAnalysisIdRef = useRef(0)
   const programmaticCodeUpdateRef = useRef(false)
   const settingsRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    setSidebarWidth(Math.round(window.innerWidth * 0.25))
+  }, [])
 
   useEffect(() => {
     applyIssueDecorations(issues)
@@ -491,6 +496,29 @@ export default function VibeLearEditor() {
     }
   }
 
+  function handleResizerMouseDown(e: React.MouseEvent) {
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = sidebarWidth
+
+    function onMouseMove(ev: MouseEvent) {
+      const delta = startX - ev.clientX
+      setSidebarWidth(Math.max(200, Math.min(700, startWidth + delta)))
+    }
+
+    function onMouseUp() {
+      document.removeEventListener('mousemove', onMouseMove)
+      document.removeEventListener('mouseup', onMouseUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', onMouseMove)
+    document.addEventListener('mouseup', onMouseUp)
+  }
+
   async function handleExplain(target: 'selection' | 'full' = 'selection') {
     const codeToExplain = target === 'full' ? code.trim() : selectedCode.trim()
 
@@ -591,9 +619,8 @@ export default function VibeLearEditor() {
       </header>
 
       <div
-        className={`border-b border-zinc-200 bg-white px-5 dark:border-zinc-800 dark:bg-zinc-900 ${
-          hasCode ? 'py-2' : 'py-3'
-        }`}
+        className={`border-b border-zinc-200 bg-white px-5 dark:border-zinc-800 dark:bg-zinc-900 ${hasCode ? 'py-2' : 'py-3'
+          }`}
       >
         <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
           {modeTabs.map((tab) => (
@@ -601,11 +628,10 @@ export default function VibeLearEditor() {
               key={tab.id}
               type="button"
               onClick={() => changeMode(tab.id)}
-              className={`rounded-md border px-3 py-2 text-left transition-colors ${
-                mode === tab.id
-                  ? 'border-indigo-300 bg-indigo-50 text-indigo-950 shadow-sm dark:border-indigo-500/60 dark:bg-indigo-950 dark:text-indigo-50'
-                  : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700'
-              }`}
+              className={`rounded-md border px-3 py-2 text-left transition-colors ${mode === tab.id
+                ? 'border-indigo-300 bg-indigo-50 text-indigo-950 shadow-sm dark:border-indigo-500/60 dark:bg-indigo-950 dark:text-indigo-50'
+                : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700'
+                }`}
             >
               <span className="block text-sm font-semibold">{tab.label}</span>
               {!hasCode ? (
@@ -684,9 +710,8 @@ export default function VibeLearEditor() {
                 value={pastedCode}
                 onChange={(e) => setPastedCode(e.target.value)}
                 placeholder="Paste code or classwork text here."
-                className={`w-full resize-y rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono text-xs leading-5 text-zinc-900 placeholder-zinc-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 ${
-                  hasCode ? 'h-20' : 'h-32'
-                }`}
+                className={`w-full resize-y rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono text-xs leading-5 text-zinc-900 placeholder-zinc-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 ${hasCode ? 'h-20' : 'h-32'
+                  }`}
               />
             </div>
             <div className="flex items-end">
@@ -723,7 +748,7 @@ export default function VibeLearEditor() {
       ) : null}
 
       <div className="flex min-h-0 flex-1 flex-col gap-0 md:flex-row">
-        <div className="relative min-h-[360px] flex-1 overflow-hidden border-r border-zinc-800 bg-zinc-950">
+        <div className="relative min-h-[360px] flex-1 overflow-hidden bg-zinc-950">
           <Editor
             height="100%"
             language={getMonacoLanguage(language)}
@@ -781,7 +806,19 @@ export default function VibeLearEditor() {
           ) : null}
         </div>
 
-        <aside className="flex w-full flex-col border-t border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 md:w-[21rem] md:border-t-0 lg:w-[24rem]">
+        <div
+          className="group hidden cursor-col-resize md:flex md:w-2 md:items-center md:justify-center md:border-x md:border-zinc-800 md:bg-zinc-950 md:hover:border-indigo-500/60 md:hover:bg-indigo-950/40"
+          onMouseDown={handleResizerMouseDown}
+          role="separator"
+          aria-label="Resize sidebar"
+        >
+          <div className="h-8 w-0.5 rounded-full bg-zinc-700 transition-colors group-hover:bg-indigo-400" />
+        </div>
+
+        <aside
+          className="flex max-w-full flex-col border-t border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 md:border-t-0 md:shrink-0"
+          style={{ width: sidebarWidth }}
+        >
           <div className="border-b border-zinc-200 bg-white px-5 py-3 dark:border-zinc-800 dark:bg-zinc-950">
             <p className="text-xs font-medium uppercase tracking-wide text-indigo-600 dark:text-indigo-300">
               AI help
