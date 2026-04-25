@@ -53,6 +53,12 @@ Each teammate works in their own files. The quiz teammate only touches:
 - `ANTHROPIC_API_KEY` in `.env.local` (never commit — already in `.gitignore` via `.env*`)
 - Dev: `npm run dev` at `http://localhost:3000`
 
+## UI Styling Rules
+- Never modify component logic, props, or interfaces when making styling changes
+- Never change API route files
+- Always use CSS custom properties defined in globals.css — never hardcode color values
+- When editing a component, read it fully before making any changes
+
 ## Constraints
 - Explanations must be beginner-friendly — no jargon by default
 - Keep API routes thin: parse body, call Anthropic, return JSON
