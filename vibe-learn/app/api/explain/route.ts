@@ -4,23 +4,24 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 export async function POST(request: Request) {
   try {
-    const { prompt } = await request.json()
+    const { code } = await request.json()
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
-      system: 'You are a code generator. Return only the code the user asks for — no explanation, no markdown fences, no commentary. Just the raw code.',
-      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1024,
+      system:
+        'Explain code to a beginner in plain English. Avoid jargon by default. Focus on what the selected code does, why it is there, and any important concepts the learner should know.',
+      messages: [{ role: 'user', content: code }],
     })
 
-    const code = message.content
+    const explanation = message.content
       .filter((block): block is Anthropic.TextBlock => block.type === 'text')
       .map((block) => block.text)
       .join('')
 
-    return Response.json({ code })
+    return Response.json({ explanation })
   } catch (err) {
-    console.error('generate error:', err)
+    console.error('explain error:', err)
     return Response.json(
       { error: err instanceof Error ? err.message : 'Unknown error' },
       { status: 500 },
