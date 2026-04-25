@@ -2,7 +2,7 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Editor, { type OnMount } from '@monaco-editor/react'
 import QuizPanel from './QuizPanel'
 
@@ -84,6 +84,19 @@ export default function VibeLearEditor() {
   const [error, setError] = useState('')
   const [explainButtonPosition, setExplainButtonPosition] =
     useState<ExplainButtonPosition | null>(null)
+  const [quizEnabled, setQuizEnabled] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const settingsRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
+        setSettingsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   function updateSelectedCode(editor: Parameters<OnMount>[0]) {
     const selection = editor.getSelection()
@@ -110,9 +123,9 @@ export default function VibeLearEditor() {
     setExplainButtonPosition(
       visiblePosition
         ? {
-            top: Math.max(12, visiblePosition.top + visiblePosition.height + 8),
-            left: Math.max(12, visiblePosition.left),
-          }
+          top: Math.max(12, visiblePosition.top + visiblePosition.height + 8),
+          left: Math.max(12, visiblePosition.left),
+        }
         : { top: 12, left: 12 },
     )
   }
@@ -190,6 +203,44 @@ export default function VibeLearEditor() {
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             Build, edit, highlight, and learn from the code.
           </p>
+        </div>
+
+        <div className="relative" ref={settingsRef}>
+          <button
+            type="button"
+            onClick={() => setSettingsOpen((o) => !o)}
+            className="rounded-md p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+            aria-label="Settings"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="3" />
+              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+            </svg>
+          </button>
+
+          {settingsOpen ? (
+            <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
+              <div className="px-4 py-3">
+                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  Settings
+                </p>
+                <label className="flex cursor-pointer items-center justify-between gap-3">
+                  <span className="text-sm text-zinc-800 dark:text-zinc-200">Quiz mode</span>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={quizEnabled}
+                    onClick={() => setQuizEnabled((v) => !v)}
+                    className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${quizEnabled ? 'bg-indigo-600' : 'bg-zinc-300 dark:bg-zinc-600'}`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${quizEnabled ? 'translate-x-4' : 'translate-x-0'}`}
+                    />
+                  </button>
+                </label>
+              </div>
+            </div>
+          ) : null}
         </div>
       </header>
 
@@ -302,7 +353,7 @@ export default function VibeLearEditor() {
         </aside>
       </div>
 
-      <QuizPanel code={code} />
+      <QuizPanel code={code} isEnabled={quizEnabled} />
     </div>
   )
 }
