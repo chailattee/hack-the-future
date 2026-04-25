@@ -39,7 +39,7 @@ const languageOptions = [
   'Markdown',
   'Plain Text',
 ]
-const modeTabs: Array<{ id: Mode; label: string; description: string }> = [
+const modeTabs: Array<{ id: Mode; label: string; description?: string }> = [
   {
     id: 'generate',
     label: 'Generate from idea',
@@ -221,9 +221,8 @@ export default function VibeLearEditor() {
   const [error, setError] = useState('')
   const [explainButtonPosition, setExplainButtonPosition] =
     useState<ExplainButtonPosition | null>(null)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(384)
-  const [quizEnabled, setQuizEnabled] = useState(false)
+  const [cursor, setCursor] = useState({ line: 1, col: 1 })
   const [quizQuestions, setQuizQuestions] = useState<{ question: string; options: { A: string; B: string; C: string; D: string }; answer: string }[]>([])
   const [quizIndex, setQuizIndex] = useState(0)
   const editorRef = useRef<MonacoEditor | null>(null)
@@ -231,7 +230,6 @@ export default function VibeLearEditor() {
   const issueDecorationsRef = useRef<DecorationsCollection | null>(null)
   const issueAnalysisIdRef = useRef(0)
   const programmaticCodeUpdateRef = useRef(false)
-  const settingsRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     setSidebarWidth(Math.round(window.innerWidth * 0.25))
@@ -240,17 +238,6 @@ export default function VibeLearEditor() {
   useEffect(() => {
     applyIssueDecorations(issues)
   }, [issues])
-
-  useEffect(() => {
-    if (!settingsOpen) return
-    function handleClickOutside(e: MouseEvent) {
-      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
-        setSettingsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [settingsOpen])
 
   function applyIssueDecorations(nextIssues: CodeIssue[]) {
     const editor = editorRef.current
@@ -415,6 +402,9 @@ export default function VibeLearEditor() {
     editorRef.current = editor
     monacoRef.current = monaco
     applyIssueDecorations(issues)
+    editor.onDidChangeCursorPosition((e) => {
+      setCursor({ line: e.position.lineNumber, col: e.position.column })
+    })
     const selectionDisposable = editor.onDidChangeCursorSelection(() => {
       updateSelectedCode(editor)
     })
@@ -454,15 +444,6 @@ export default function VibeLearEditor() {
       setSelectedCode('')
       setExplainButtonPosition(null)
       setExplanation('')
-      if (quizEnabled && data.code) {
-        const qRes = await fetch('/api/quiz', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: data.code, language, previousQuestions: [] }),
-        })
-        const qData = await qRes.json()
-        if (qData.questions) setQuizQuestions(qData.questions)
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -529,6 +510,25 @@ export default function VibeLearEditor() {
     document.body.style.userSelect = 'none'
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('mouseup', onMouseUp)
+  }
+
+  async function handleLaunchQuiz() {
+    if (!code) return
+    try {
+      const qData = await fetch("/api/quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          language,
+          previousQuestions: [],
+        }),
+      }).then((r) => r.json())
+      setQuizQuestions(qData.questions)
+      setQuizIndex(0)
+    } catch (e) {
+      console.error("Quiz launch failed", e)
+    }
   }
 
   async function handleAnswer() {
@@ -599,81 +599,35 @@ export default function VibeLearEditor() {
 
   return (
     <div className="flex h-full flex-col bg-zinc-100 text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50">
-      <header className="flex items-center justify-between border-b border-zinc-200 bg-white px-5 py-2.5 dark:border-zinc-800 dark:bg-zinc-950">
+      <header className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-2.5">
         <div>
           <span className="text-lg font-semibold tracking-tight">Vibe Learn</span>
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
-            Generate, bring in classwork, then learn what the code is doing.
-          </p>
-        </div>
-
-        <div className="relative" ref={settingsRef}>
-          <button
-            type="button"
-            onClick={() => setSettingsOpen((o) => !o)}
-            className="rounded-md p-2 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-            aria-label="Settings"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </button>
-
-          {settingsOpen ? (
-            <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-lg border border-zinc-200 bg-white shadow-lg dark:border-zinc-700 dark:bg-zinc-900">
-              <div className="px-4 py-3">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                  Settings
-                </p>
-                <label className="flex cursor-pointer items-center justify-between gap-3">
-                  <span className="text-sm text-zinc-800 dark:text-zinc-200">Quiz mode</span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={quizEnabled}
-                    onClick={() => setQuizEnabled((v) => !v)}
-                    className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${quizEnabled ? 'bg-indigo-600' : 'bg-zinc-300 dark:bg-zinc-600'}`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${quizEnabled ? 'translate-x-4' : 'translate-x-0'}`}
-                    />
-                  </button>
-                </label>
-              </div>
-            </div>
-          ) : null}
         </div>
       </header>
 
       <div
-        className={`border-b border-zinc-200 bg-white px-5 dark:border-zinc-800 dark:bg-zinc-900 ${hasCode ? 'py-2' : 'py-3'
+        className={`border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 ${hasCode ? 'py-2' : 'py-3'
           }`}
       >
-        <div className="grid gap-2 md:grid-cols-[1fr_1fr_auto]">
+        <div className="grid gap-1 md:grid-cols-[1fr_1fr_auto]">
           {modeTabs.map((tab) => (
             <button
               key={tab.id}
               type="button"
               onClick={() => changeMode(tab.id)}
-              className={`rounded-md border px-3 py-2 text-left transition-colors ${mode === tab.id
-                ? 'border-indigo-300 bg-indigo-50 text-indigo-950 shadow-sm dark:border-indigo-500/60 dark:bg-indigo-950 dark:text-indigo-50'
-                : 'border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700'
+              className={`border-b-2 py-1.5 px-3 text-left transition-colors ${mode === tab.id
+                ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-text)]'
+                : 'border-transparent bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:border-[var(--color-text-dim)] hover:bg-[var(--color-surface-raised)]'
                 }`}
             >
-              <span className="block text-sm font-semibold">{tab.label}</span>
-              {!hasCode ? (
-                <span className="mt-0.5 block text-xs leading-4 text-zinc-500 dark:text-zinc-400">
-                  {tab.description}
-                </span>
-              ) : null}
+              <span className="block text-xs font-medium font-mono">{tab.label}</span>
             </button>
           ))}
           <button
             type="button"
             onClick={handleExport}
             disabled={!hasCode}
-            className="flex items-center gap-1.5 self-start rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm font-semibold text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300 dark:hover:border-zinc-700"
+            className="flex items-center gap-1.5 self-start border-none bg-[var(--color-surface)] py-1.5 px-3 text-xs font-medium font-mono text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -691,23 +645,12 @@ export default function VibeLearEditor() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="What do you want to build?"
-              className="min-w-0 flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm placeholder-zinc-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              className="min-w-0 flex-1 rounded-none border-b border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
             />
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="rounded-md border border-zinc-300 bg-white px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-            >
-              {languageOptions.map((lang) => (
-                <option key={lang} value={lang}>
-                  {lang}
-                </option>
-              ))}
-            </select>
             <button
               type="submit"
               disabled={loading}
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-none bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? 'Generating...' : 'Generate Code'}
             </button>
@@ -715,14 +658,14 @@ export default function VibeLearEditor() {
         ) : (
           <div className="mt-3 grid gap-3 lg:grid-cols-[16rem_minmax(0,1fr)_auto]">
             <div>
-              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
                 Upload file
               </label>
               <input
                 type="file"
                 accept={acceptedFileTypes}
                 onChange={(e) => handleFileUpload(e.target.files?.[0])}
-                className="block w-full text-sm text-zinc-600 file:mr-3 file:rounded-md file:border-0 file:bg-indigo-600 file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-indigo-700 dark:text-zinc-300"
+                className="block w-full text-sm text-[var(--color-text-muted)] file:mr-3 file:rounded-none file:border-0 file:bg-[var(--color-primary)] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-[var(--color-primary-hover)]"
               />
               {uploadedFileName ? (
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
@@ -731,14 +674,14 @@ export default function VibeLearEditor() {
               ) : null}
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-[var(--color-text-muted)]">
                 Paste code or classwork
               </label>
               <textarea
                 value={pastedCode}
                 onChange={(e) => setPastedCode(e.target.value)}
                 placeholder="Paste code or classwork text here."
-                className={`w-full resize-y rounded-md border border-zinc-300 bg-white px-3 py-2 font-mono text-xs leading-5 text-zinc-900 placeholder-zinc-400 shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100 ${hasCode ? 'h-20' : 'h-32'
+                className={`w-full resize-y rounded-none border-b border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 py-2 font-mono text-xs leading-5 text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] ${hasCode ? 'h-20' : 'h-32'
                   }`}
               />
             </div>
@@ -747,7 +690,7 @@ export default function VibeLearEditor() {
                 type="button"
                 onClick={handleLoadPastedCode}
                 disabled={!pastedCode.trim()}
-                className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60 lg:w-auto"
+                className="w-full rounded-none bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60 lg:w-auto"
               >
                 Load into Editor
               </button>
@@ -757,27 +700,27 @@ export default function VibeLearEditor() {
 
       </div>
 
-      <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-5 py-2 text-xs text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-zinc-50 px-5 py-2 text-xs text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
         <span>{editorStatus}</span>
         <button
           type="button"
           onClick={() => handleExplain('full')}
           disabled={!code.trim() || explaining}
-          className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          className="rounded-none border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
         >
           {explaining ? 'Explaining...' : 'Explain Code'}
         </button>
       </div>
 
       {error ? (
-        <div className="border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
+        <div className="border-b border-[var(--color-error)]/30 bg-red-50 px-4 py-2 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
           {error}
         </div>
       ) : null}
 
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1 flex-col gap-0 md:flex-row">
-          <div className="relative min-h-0 flex-1 overflow-hidden border-r border-zinc-800 bg-zinc-950">
+          <div className="relative min-h-0 flex-1 overflow-hidden border-r border-[var(--color-border)] bg-zinc-950">
             <Editor
               height="100%"
               language={getMonacoLanguage(language)}
@@ -814,7 +757,7 @@ export default function VibeLearEditor() {
             ) : null}
 
             {loading ? (
-              <div className="absolute inset-x-0 top-0 z-10 bg-indigo-600 px-4 py-2 text-xs font-medium text-white">
+              <div className="absolute inset-x-0 top-0 z-10 bg-[#d4a84b] px-4 py-2 text-xs font-medium text-white">
                 Generating code with AI...
               </div>
             ) : null}
@@ -824,7 +767,7 @@ export default function VibeLearEditor() {
                 type="button"
                 onClick={() => handleExplain('selection')}
                 disabled={explaining}
-                className="absolute z-10 rounded-md border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 shadow-lg shadow-zinc-950/20 transition-colors hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-indigo-400/60 dark:bg-zinc-900 dark:text-indigo-100 dark:hover:bg-zinc-800"
+                className="absolute z-10 rounded-none border border-[var(--color-primary)]/60 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 shadow-lg shadow-zinc-950/20 transition-colors hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-zinc-900 dark:text-indigo-100 dark:hover:bg-zinc-800"
                 style={{
                   top: explainButtonPosition.top,
                   left: explainButtonPosition.left,
@@ -845,69 +788,69 @@ export default function VibeLearEditor() {
           </div>
 
           <aside
-            className="flex max-w-full flex-col border-t border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 md:border-t-0 md:shrink-0"
+            className="flex max-w-full flex-col md:border-t-0 md:shrink-0 bg-[var(--color-surface)] border-l border-[var(--color-border)] text-[var(--color-text)]"
             style={{ width: sidebarWidth }}
           >
-            <div className="border-b border-zinc-200 bg-white px-5 py-3 dark:border-zinc-800 dark:bg-zinc-950">
-              <p className="text-xs font-medium uppercase tracking-wide text-indigo-600 dark:text-indigo-300">
+            <div className="bg-[var(--color-surface)] px-5 py-3">
+              <p className="text-[var(--color-primary)] text-xs font-mono uppercase tracking-wider">
                 AI help
               </p>
-              <h2 className="mt-1 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+              <h2 className="mt-1 text-sm font-mono font-medium whitespace-nowrap text-[var(--color-text)]">
                 Explanations and issues
               </h2>
-              <p className="mt-1 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
+              <p className="mt-1 leading-5 text-[var(--color-text-muted)] text-sm italic">
                 Highlight code or use Explain Code for a beginner-friendly breakdown.
               </p>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-[var(--color-text)] text-sm leading-6">
               {selectedCode ? (
-                <div className="mb-4 border-b border-zinc-200 pb-4 dark:border-zinc-800">
-                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <div className="mb-4 pb-4">
+                  <p className="mb-2 text-[var(--color-primary)] text-xs font-mono uppercase tracking-wider">
                     Selected code
                     {selectedRange
                       ? `, lines ${selectedRange.startLine}-${selectedRange.endLine}`
                       : ''}
                   </p>
-                  <pre className="max-h-28 overflow-auto rounded-md border border-zinc-200 bg-white p-3 font-mono text-xs leading-5 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
+                  <pre className="max-h-28 overflow-auto bg-[var(--color-surface-raised)] font-mono text-xs rounded-none p-2">
                     {selectedCode}
                   </pre>
                 </div>
               ) : null}
 
               {explaining ? (
-                <div className="rounded-md border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-900 dark:border-indigo-900/60 dark:bg-indigo-950 dark:text-indigo-100">
+                <div className="rounded-none border border-indigo-200 bg-[#d4a84b] p-3 text-sm text-indigo-900 dark:border-indigo-900/60 dark:bg-indigo-950 dark:text-indigo-100">
                   Explaining with AI...
                 </div>
               ) : explanation ? (
-                <div className="rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
-                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                <div className="rounded-none bg-white p-3 dark:bg-zinc-950">
+                  <p className="mb-3 text-[var(--color-primary)] text-xs font-mono uppercase tracking-wider">
                     Explanation
                   </p>
                   <div className="space-y-3">{renderExplanation(explanation)}</div>
                 </div>
               ) : (
-                <div className="rounded-md border border-dashed border-zinc-300 bg-white p-4 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400">
+                <div className="rounded-none bg-white p-4 text-[var(--color-text-muted)] text-sm italic dark:bg-zinc-950">
                   {code.trim()
                     ? 'Highlight code or click Explain Code to see a beginner-friendly explanation.'
                     : 'Upload code or generate something to begin.'}
                 </div>
               )}
 
-              <div className="mt-4 rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
+              <div className="mt-4 rounded-none bg-white p-3 dark:bg-zinc-950">
                 <div className="flex items-center justify-between gap-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                  <p className="text-[var(--color-primary)] text-xs font-mono uppercase tracking-wider">
                     Code review
                   </p>
                   {analyzingIssues ? (
-                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                    <span className="text-[var(--color-text-muted)] text-sm italic">
                       Checking...
                     </span>
                   ) : null}
                 </div>
 
                 {issueAnalysisError ? (
-                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="mt-2 text-[var(--color-text-muted)] text-sm italic">
                     {issueAnalysisError}
                   </p>
                 ) : errorIssues.length ? (
@@ -915,11 +858,11 @@ export default function VibeLearEditor() {
                     {errorIssues.map((issue, index) => (
                       <div
                         key={`${issue.lineNumber}-${issue.type}-${index}`}
-                        className="rounded-md border border-red-200 bg-red-50 p-3 text-xs leading-5 text-red-950 dark:border-red-900/60 dark:bg-red-950 dark:text-red-100"
+                        className="rounded-none border border-red-200 bg-red-50 p-3 text-xs leading-5 text-red-950 dark:border-red-900/60 dark:bg-red-950 dark:text-red-100"
                       >
                         <div className="mb-1 flex flex-wrap items-center gap-2">
                           <span className="font-semibold">Line {issue.lineNumber}</span>
-                          <span className="rounded bg-red-100 px-2 py-0.5 font-medium uppercase tracking-wide text-red-800 dark:bg-red-900 dark:text-red-100">
+                          <span className="rounded-none bg-red-100 px-2 py-0.5 font-medium uppercase tracking-wide text-red-800 dark:bg-red-900 dark:text-red-100">
                             {issue.type}
                           </span>
                         </div>
@@ -932,7 +875,7 @@ export default function VibeLearEditor() {
                     ))}
                   </div>
                 ) : (
-                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                  <p className="mt-2 text-[var(--color-text-muted)] text-sm italic">
                     {code.trim()
                       ? 'No syntax or runtime errors found.'
                       : 'Add code to check for errors.'}
@@ -940,7 +883,7 @@ export default function VibeLearEditor() {
                 )}
 
                 {improvementIssues.length ? (
-                  <details className="mt-3 rounded-md border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
+                  <details className="mt-3 rounded-none bg-zinc-50 p-3 dark:bg-zinc-900">
                     <summary className="cursor-pointer text-xs font-semibold text-zinc-700 dark:text-zinc-200">
                       Optional improvements ({improvementIssues.length})
                     </summary>
@@ -952,7 +895,7 @@ export default function VibeLearEditor() {
                         >
                           <div className="mb-1 flex flex-wrap items-center gap-2">
                             <span className="font-semibold">Line {issue.lineNumber}</span>
-                            <span className="rounded bg-zinc-200 px-2 py-0.5 font-medium uppercase tracking-wide text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+                            <span className="rounded-none bg-zinc-200 px-2 py-0.5 font-medium uppercase tracking-wide text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
                               {issue.type}
                             </span>
                           </div>
@@ -971,7 +914,31 @@ export default function VibeLearEditor() {
           </aside>
         </div>
 
-        <QuizPanel code={code} isEnabled={quizEnabled} quiz={quizQuestions[quizIndex] ?? null} onAnswer={handleAnswer} onEnd={() => { setQuizQuestions([]); setQuizIndex(0); setQuizEnabled(false) }} />
+        <QuizPanel code={code} isEnabled={quizQuestions.length > 0 && quizIndex < quizQuestions.length} quiz={quizQuestions[quizIndex] ?? null} onAnswer={handleAnswer} onEnd={() => { setQuizQuestions([]); setQuizIndex(0) }} />
+      </div>
+      <div className="flex items-center justify-between border-t border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-0.5 text-xs font-mono text-[var(--color-text-muted)] shrink-0">
+        <span className="tracking-widest text-[var(--color-primary)]">
+          VIBE LEARN
+        </span>
+        <div className="flex items-center gap-4">
+          <span>Ln {cursor.line}, Col {cursor.col}</span>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="bg-transparent text-[var(--color-text-muted)] text-xs font-mono border-none outline-none cursor-pointer hover:text-[var(--color-text)]"
+          >
+            {languageOptions.map((lang) => (
+              <option key={lang} value={lang}>{lang}</option>
+            ))}
+          </select>
+          <button
+            onClick={handleLaunchQuiz}
+            disabled={!code}
+            className="hover:text-[var(--color-text)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+          >
+            QUIZ
+          </button>
+        </div>
       </div>
     </div>
   )
