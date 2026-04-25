@@ -142,7 +142,27 @@ function stripCodeFenceLines(text: string) {
 }
 
 function renderInlineFormatting(text: string): ReactNode[] {
-  return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, index) => {
+  return text.split(/(\*\*`[^`]+`\*\*|\*`[^`]+`\*|\*\*[^*]+\*\*|`[^`]+`)/g).map((part, index) => {
+    if (part.startsWith('**`') && part.endsWith('`**')) {
+      return (
+        <strong key={index} className="font-semibold">
+          <code className="rounded border border-[#634d1e]/60 bg-[#634d1e] px-1 py-0.5 font-mono text-[0.8em] text-[#d4cfc9]">
+            {part.slice(3, -3)}
+          </code>
+        </strong>
+      )
+    }
+
+    if (part.startsWith('*`') && part.endsWith('`*')) {
+      return (
+        <em key={index}>
+          <code className="rounded border border-[#634d1e]/60 bg-[#634d1e] px-1 py-0.5 font-mono text-[0.8em] text-[#d4cfc9]">
+            {part.slice(2, -2)}
+          </code>
+        </em>
+      )
+    }
+
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
         <strong key={index} className="font-semibold text-zinc-950 dark:text-zinc-50">
@@ -155,7 +175,7 @@ function renderInlineFormatting(text: string): ReactNode[] {
       return (
         <code
           key={index}
-          className="rounded border border-zinc-200 bg-zinc-100 px-1 py-0.5 font-mono text-[0.8em] text-zinc-800 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
+          className="rounded border border-[#634d1e]/60 bg-[#634d1e] px-1 py-0.5 font-mono text-[0.8em] text-[#d4cfc9]"
         >
           {part.slice(1, -1)}
         </code>
@@ -188,7 +208,7 @@ function renderExplanation(explanation: string) {
       if (bullet) {
         return (
           <p key={index} className="relative pl-4">
-            <span className="absolute left-0 text-indigo-500">•</span>
+            <span className="absolute left-0 text-[#d4a84b]">•</span>
             {renderInlineFormatting(bullet[1])}
           </p>
         )
@@ -813,7 +833,7 @@ export default function VibeLearEditor() {
                 highlight code or use explain code for a beginner-friendly breakdown.
               </p>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-[var(--color-text)] text-sm leading-6">
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-[var(--color-text)] text-xs leading-5">
               {selectedCode ? (
                 <div className="mb-4 pb-4">
                   <p className="mb-2 text-[var(--color-primary)] text-xs font-mono uppercase tracking-wider">
@@ -829,11 +849,11 @@ export default function VibeLearEditor() {
               ) : null}
 
               {explaining ? (
-                <div className="rounded-none border border-indigo-200 bg-[#d4a84b] p-3 text-sm text-indigo-900 dark:border-indigo-900/60 dark:bg-indigo-950 dark:text-indigo-100">
-                  Explaining with AI...
+                <div className="rounded-none border border-[#d4a84b]/40 bg-[#d4a84b]/10 p-3 text-xs text-[#d4a84b]">
+                  explaining with ai...
                 </div>
               ) : explanation ? (
-                <div className="rounded-none bg-[var(--color-surface-raised)]">
+                <div className="rounded-none bg-[var(--color-surface-raised)] p-4">
                   <p className="mb-3 text-[var(--color-primary)] text-xs font-mono uppercase tracking-wider">
                     Explanation
                   </p>
