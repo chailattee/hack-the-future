@@ -831,7 +831,7 @@ export default function VibeLearEditor() {
                 AI help
               </p>
               <p className="mt-1 leading-5 text-[var(--color-text-muted)] text-xs italic">
-                highlight code or use explain code for a beginner-friendly breakdown.
+                highlight code or use explain code for a breakdown.
               </p>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-[var(--color-text)] text-xs leading-5">
@@ -863,7 +863,7 @@ export default function VibeLearEditor() {
               ) : (
                 <div className="rounded-none bg-[var(--color-surface-raised)] p-4 text-[var(--color-text-muted)] text-xs italic">
                   {code.trim()
-                    ? 'highlight code or click explain code to see a beginner-friendly explanation.'
+                    ? 'highlight code or click explain code for a breakdown.'
                     : 'upload code or generate something to begin.'}
                 </div>
               )}
