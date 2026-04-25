@@ -40,11 +40,13 @@ Steps 1–4 (P0) are complete. Working on step 5 (P1).
 ## Key Implementation Details
 
 ### VibeLearEditor.tsx
-- All state lives here: `code`, `language`, `prompt`, `selectedCode`, `explanation`, `explainButtonPosition`
+- All state lives here: `code`, `language`, `prompt`, `selectedCode`, `explanation`, `explainButtonPosition`, `quizEnabled`, `settingsOpen`
 - Monaco is **editable** (`readOnly: false`) — users can modify generated code
 - Language dropdown updates syntax highlighting immediately via `language={language.toLowerCase()}` prop (not `defaultLanguage`)
 - Floating "Explain" button appears at cursor position after selection using `editor.getScrolledVisiblePosition()`
 - `renderExplanation()` parses markdown-like formatting (bold, code, bullets) into React nodes
+- Settings gear icon (top-right of header) opens a dropdown with a quiz mode toggle; click-outside closes it via `useEffect` + `useRef`
+- `QuizPanel` is rendered at the bottom of the page, receives `code` and `isEnabled={quizEnabled}`
 
 ### API Routes — all follow the same pattern
 ```
