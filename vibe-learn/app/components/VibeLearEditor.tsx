@@ -221,9 +221,9 @@ export default function VibeLearEditor() {
   const [error, setError] = useState('')
   const [explainButtonPosition, setExplainButtonPosition] =
     useState<ExplainButtonPosition | null>(null)
-  const [settingsOpen, setSettingsOpen] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(384)
   const [quizEnabled, setQuizEnabled] = useState(false)
+  const [cursor, setCursor] = useState({ line: 1, col: 1 })
   const [quizQuestions, setQuizQuestions] = useState<{ question: string; options: { A: string; B: string; C: string; D: string }; answer: string }[]>([])
   const [quizIndex, setQuizIndex] = useState(0)
   const editorRef = useRef<MonacoEditor | null>(null)
@@ -231,7 +231,6 @@ export default function VibeLearEditor() {
   const issueDecorationsRef = useRef<DecorationsCollection | null>(null)
   const issueAnalysisIdRef = useRef(0)
   const programmaticCodeUpdateRef = useRef(false)
-  const settingsRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     setSidebarWidth(Math.round(window.innerWidth * 0.25))
@@ -240,17 +239,6 @@ export default function VibeLearEditor() {
   useEffect(() => {
     applyIssueDecorations(issues)
   }, [issues])
-
-  useEffect(() => {
-    if (!settingsOpen) return
-    function handleClickOutside(e: MouseEvent) {
-      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) {
-        setSettingsOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [settingsOpen])
 
   function applyIssueDecorations(nextIssues: CodeIssue[]) {
     const editor = editorRef.current
@@ -415,6 +403,9 @@ export default function VibeLearEditor() {
     editorRef.current = editor
     monacoRef.current = monaco
     applyIssueDecorations(issues)
+    editor.onDidChangeCursorPosition((e) => {
+      setCursor({ line: e.position.lineNumber, col: e.position.column })
+    })
     const selectionDisposable = editor.onDidChangeCursorSelection(() => {
       updateSelectedCode(editor)
     })
@@ -602,57 +593,6 @@ export default function VibeLearEditor() {
       <header className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-2.5">
         <div>
           <span className="text-lg font-semibold tracking-tight">Vibe Learn</span>
-        </div>
-        <div className="relative" ref={settingsRef}>
-          <button
-            type="button"
-            onClick={() => setSettingsOpen((o) => !o)}
-            className="rounded-md p-2 text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text)]"
-            aria-label="Settings"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="3" />
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-            </svg>
-          </button>
-
-          {settingsOpen ? (
-            <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] shadow-none">
-              <div className="px-4 py-3">
-                <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
-                  Settings
-                </p>
-                <label className="flex cursor-pointer items-center justify-between gap-3">
-                  <span className="text-sm text-[var(--color-text)]">Quiz mode</span>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={quizEnabled}
-                    onClick={() => setQuizEnabled((v) => !v)}
-                    className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${quizEnabled ? 'bg-[var(--color-primary)]' : 'bg-[var(--color-surface-raised)]'}`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${quizEnabled ? 'translate-x-4' : 'translate-x-0'}`}
-                    />
-                  </button>
-                </label>
-                <label className="mt-3 flex items-center justify-between gap-3">
-                  <span className="text-sm text-[var(--color-text)]">Language</span>
-                  <select
-                    value={language}
-                    onChange={(e) => setLanguage(e.target.value)}
-                    className="rounded-md border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-2 py-1 text-sm text-[var(--color-text)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                  >
-                    {languageOptions.map((lang) => (
-                      <option key={lang} value={lang}>
-                        {lang}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </div>
-          ) : null}
         </div>
       </header>
 
@@ -966,6 +906,32 @@ export default function VibeLearEditor() {
         </div>
 
         <QuizPanel code={code} isEnabled={quizEnabled} quiz={quizQuestions[quizIndex] ?? null} onAnswer={handleAnswer} onEnd={() => { setQuizQuestions([]); setQuizIndex(0); setQuizEnabled(false) }} />
+      </div>
+      <div className="flex items-center justify-between border-t border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-0.5 text-xs font-mono text-[var(--color-text-muted)] shrink-0">
+        <span className="tracking-widest text-[var(--color-primary)]">
+          VIBE LEARN
+        </span>
+        <div className="flex items-center gap-4">
+          <span>Ln {cursor.line}, Col {cursor.col}</span>
+          <select
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            className="bg-transparent text-[var(--color-text-muted)] text-xs font-mono border-none outline-none cursor-pointer hover:text-[var(--color-text)]"
+          >
+            {languageOptions.map((lang) => (
+              <option key={lang} value={lang}>{lang}</option>
+            ))}
+          </select>
+          <button
+            onClick={() => setQuizEnabled((q) => !q)}
+            className="hover:text-[var(--color-text)] transition-colors"
+          >
+            QUIZ: {quizEnabled ?
+              <span className="text-[var(--color-success)]">ON</span> :
+              <span className="text-[var(--color-text-dim)]">OFF</span>
+            }
+          </button>
+        </div>
       </div>
     </div>
   )
