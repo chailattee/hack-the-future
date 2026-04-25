@@ -228,6 +228,11 @@ export default function VibeLearEditor() {
   const [quizIndex, setQuizIndex] = useState(0)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
+  const editorRef = useRef<MonacoEditor | null>(null)
+  const monacoRef = useRef<Monaco | null>(null)
+  const issueDecorationsRef = useRef<DecorationsCollection | null>(null)
+  const issueAnalysisIdRef = useRef(0)
+  const programmaticCodeUpdateRef = useRef(false)
 
   useEffect(() => {
     applyIssueDecorations(issues)
@@ -720,8 +725,9 @@ export default function VibeLearEditor() {
         </div>
       ) : null}
 
+      <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col gap-0 md:flex-row">
-        <div className="relative min-h-[360px] flex-1 overflow-hidden border-r border-zinc-800 bg-zinc-950">
+        <div className="relative min-h-0 flex-1 overflow-hidden border-r border-zinc-800 bg-zinc-950">
           <Editor
             height="100%"
             language={getMonacoLanguage(language)}
@@ -904,6 +910,7 @@ export default function VibeLearEditor() {
       </div>
 
       <QuizPanel code={code} isEnabled={quizEnabled} quiz={quizQuestions[quizIndex] ?? null} onAnswer={handleAnswer} onEnd={() => { setQuizQuestions([]); setQuizIndex(0); setQuizEnabled(false) }} />
+      </div>
     </div>
   )
 }
