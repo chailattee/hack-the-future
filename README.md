@@ -1,3 +1,4 @@
+<img width="1164" height="502" alt="Screenshot 2026-04-25 at 12 24 41 PM" src="https://github.com/user-attachments/assets/42b98c42-c220-4ec6-b3ed-0ec1f28e72dd" />
 # trace
 
 [try it out!](https://hack-the-future-three.vercel.app/)
@@ -20,6 +21,7 @@ Next.js 16 (App Router), Monaco Editor, Anthropic Claude Sonnet 4.6, Tailwind CS
 
 ## Preview 
 <img width="1173" height="653" alt="Screenshot 2026-04-25 at 12 19 34 PM" src="https://github.com/user-attachments/assets/33edcf2e-3138-4942-8626-7507013db7cd" />
+<img width="1164" height="502" alt="Screenshot 2026-04-25 at 12 24 41 PM" src="https://github.com/user-attachments/assets/81dd426e-ae16-4c5b-91d9-0650b7959476" />
 
 
 ## Getting Started
