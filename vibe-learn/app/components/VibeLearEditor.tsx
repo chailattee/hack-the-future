@@ -42,12 +42,12 @@ const languageOptions = [
 const modeTabs: Array<{ id: Mode; label: string; description?: string }> = [
   {
     id: 'generate',
-    label: 'Generate from idea',
-    description: 'Describe what you want and let AI write starter code.',
+    label: 'generate from idea',
+    description: 'describe what you want and let AI write starter code.',
   },
   {
     id: 'upload',
-    label: 'Upload/Paste existing code',
+    label: 'upload / paste existing code',
     description: 'Start from classwork, notes, or a code file.',
   },
 ]
@@ -225,6 +225,7 @@ export default function VibeLearEditor() {
   const [cursor, setCursor] = useState({ line: 1, col: 1 })
   const [quizQuestions, setQuizQuestions] = useState<{ question: string; options: { A: string; B: string; C: string; D: string }; answer: string }[]>([])
   const [quizIndex, setQuizIndex] = useState(0)
+  const [quizLoading, setQuizLoading] = useState(false)
   const editorRef = useRef<MonacoEditor | null>(null)
   const monacoRef = useRef<Monaco | null>(null)
   const issueDecorationsRef = useRef<DecorationsCollection | null>(null)
@@ -514,6 +515,7 @@ export default function VibeLearEditor() {
 
   async function handleLaunchQuiz() {
     if (!code) return
+    setQuizLoading(true)
     try {
       const qData = await fetch("/api/quiz", {
         method: "POST",
@@ -528,6 +530,8 @@ export default function VibeLearEditor() {
       setQuizIndex(0)
     } catch (e) {
       console.error("Quiz launch failed", e)
+    } finally {
+      setQuizLoading(false)
     }
   }
 
@@ -634,7 +638,7 @@ export default function VibeLearEditor() {
               <polyline points="7 10 12 15 17 10" />
               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            Export .{getExportExtension(language)}
+            export .{getExportExtension(language)}
           </button>
         </div>
 
@@ -644,7 +648,7 @@ export default function VibeLearEditor() {
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="What do you want to build?"
+              placeholder="what do you want to build?"
               className="min-w-0 flex-1 rounded-none border-b border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
             />
             <button
@@ -652,7 +656,7 @@ export default function VibeLearEditor() {
               disabled={loading}
               className="rounded-none bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {loading ? 'Generating...' : 'Generate Code'}
+              {loading ? 'generating...' : 'generate code'}
             </button>
           </form>
         ) : (
@@ -709,7 +713,7 @@ export default function VibeLearEditor() {
             disabled={!code.trim() || explaining}
             className="rounded-none border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 py-1.5 text-xs font-semibold text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface-raised)] disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {explaining ? 'Explaining...' : 'Explain Code'}
+            {explaining ? 'Explaining...' : 'explain code'}
           </button>
           <button
             type="button"
@@ -717,7 +721,7 @@ export default function VibeLearEditor() {
             disabled={!code.trim()}
             className="rounded-none border border-[var(--color-primary)]/40 bg-[var(--color-surface-raised)] px-3 py-1.5 text-xs font-semibold text-[var(--color-primary)] transition-colors hover:bg-[var(--color-primary)]/10 disabled:cursor-not-allowed disabled:opacity-30"
           >
-            Quiz
+            quiz me
           </button>
         </div>
       </div>
@@ -806,7 +810,7 @@ export default function VibeLearEditor() {
                 AI help
               </p>
               <p className="mt-1 leading-5 text-[var(--color-text-muted)] text-xs italic">
-                Highlight code or use Explain Code for a beginner-friendly breakdown.
+                highlight code or use explain code for a beginner-friendly breakdown.
               </p>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-[var(--color-text)] text-sm leading-6">
@@ -838,8 +842,8 @@ export default function VibeLearEditor() {
               ) : (
                 <div className="rounded-none bg-[var(--color-surface-raised)] p-4 text-[var(--color-text-muted)] text-xs italic dark:bg-zinc-950">
                   {code.trim()
-                    ? 'Highlight code or click Explain Code to see a beginner-friendly explanation.'
-                    : 'Upload code or generate something to begin.'}
+                    ? 'highlight code or click explain code to see a beginner-friendly explanation.'
+                    : 'upload code or generate something to begin.'}
                 </div>
               )}
 
@@ -883,8 +887,8 @@ export default function VibeLearEditor() {
                 ) : (
                   <p className="mt-2 text-[var(--color-text-muted)] text-xs italic">
                     {code.trim()
-                      ? 'No syntax or runtime errors found.'
-                      : 'Add code to check for errors.'}
+                      ? 'no syntax or runtime errors found.'
+                      : 'add code to check for errors.'}
                   </p>
                 )}
 
@@ -920,6 +924,11 @@ export default function VibeLearEditor() {
           </aside>
         </div>
 
+        {quizLoading ? (
+          <div className="bg-[#1c1c1c] px-5 py-2 text-xs font-mono text-[#d4cfc9]">
+            Quiz loading...
+          </div>
+        ) : null}
         <QuizPanel code={code} isEnabled={quizQuestions.length > 0 && quizIndex < quizQuestions.length} quiz={quizQuestions[quizIndex] ?? null} onAnswer={handleAnswer} onEnd={() => { setQuizQuestions([]); setQuizIndex(0) }} />
       </div>
       <div className="flex items-center justify-between border-t border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-0.5 text-xs font-mono text-[var(--color-text-muted)] shrink-0">

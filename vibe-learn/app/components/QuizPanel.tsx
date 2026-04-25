@@ -61,7 +61,7 @@ export default function QuizPanel({ code, isEnabled, quiz, onAnswer, onEnd }: Pr
           onClick={onEnd}
           className="shrink-0 rounded-none px-3 py-1 text-xs text-[#d4cfc9] transition-colors hover:text-[#d4cfc9]"
         >
-          End quiz
+          end quiz
         </button>
       </div>
       <div className="flex flex-col gap-2">
