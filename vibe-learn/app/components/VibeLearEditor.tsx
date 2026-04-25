@@ -222,7 +222,6 @@ export default function VibeLearEditor() {
   const [explainButtonPosition, setExplainButtonPosition] =
     useState<ExplainButtonPosition | null>(null)
   const [sidebarWidth, setSidebarWidth] = useState(384)
-  const [quizEnabled, setQuizEnabled] = useState(false)
   const [cursor, setCursor] = useState({ line: 1, col: 1 })
   const [quizQuestions, setQuizQuestions] = useState<{ question: string; options: { A: string; B: string; C: string; D: string }; answer: string }[]>([])
   const [quizIndex, setQuizIndex] = useState(0)
@@ -445,15 +444,6 @@ export default function VibeLearEditor() {
       setSelectedCode('')
       setExplainButtonPosition(null)
       setExplanation('')
-      if (quizEnabled && data.code) {
-        const qRes = await fetch('/api/quiz', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code: data.code, language, previousQuestions: [] }),
-        })
-        const qData = await qRes.json()
-        if (qData.questions) setQuizQuestions(qData.questions)
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -520,6 +510,25 @@ export default function VibeLearEditor() {
     document.body.style.userSelect = 'none'
     document.addEventListener('mousemove', onMouseMove)
     document.addEventListener('mouseup', onMouseUp)
+  }
+
+  async function handleLaunchQuiz() {
+    if (!code) return
+    try {
+      const qData = await fetch("/api/quiz", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          language,
+          previousQuestions: [],
+        }),
+      }).then((r) => r.json())
+      setQuizQuestions(qData.questions)
+      setQuizIndex(0)
+    } catch (e) {
+      console.error("Quiz launch failed", e)
+    }
   }
 
   async function handleAnswer() {
@@ -606,9 +615,9 @@ export default function VibeLearEditor() {
               key={tab.id}
               type="button"
               onClick={() => changeMode(tab.id)}
-              className={`rounded-md border py-1.5 px-3 text-left transition-colors ${mode === tab.id
+              className={`border-b-2 py-1.5 px-3 text-left transition-colors ${mode === tab.id
                 ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 text-[var(--color-text)]'
-                : 'border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-surface-raised)]'
+                : 'border-transparent bg-[var(--color-surface)] text-[var(--color-text-muted)] hover:border-[var(--color-text-dim)] hover:bg-[var(--color-surface-raised)]'
                 }`}
             >
               <span className="block text-xs font-medium font-mono">{tab.label}</span>
@@ -618,7 +627,7 @@ export default function VibeLearEditor() {
             type="button"
             onClick={handleExport}
             disabled={!hasCode}
-            className="flex items-center gap-1.5 self-start rounded-md border border-[var(--color-border)] bg-[var(--color-surface)] py-1.5 px-3 text-xs font-medium font-mono text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-40"
+            className="flex items-center gap-1.5 self-start border-none bg-[var(--color-surface)] py-1.5 px-3 text-xs font-medium font-mono text-[var(--color-text-muted)] transition-colors hover:bg-[var(--color-surface-raised)] hover:text-[var(--color-text)] disabled:cursor-not-allowed disabled:opacity-40"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
@@ -636,12 +645,12 @@ export default function VibeLearEditor() {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="What do you want to build?"
-              className="min-w-0 flex-1 rounded-md border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+              className="min-w-0 flex-1 rounded-none border-b border-[var(--color-border)] bg-transparent px-3 py-2 text-sm text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
             />
             <button
               type="submit"
               disabled={loading}
-              className="rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-none bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {loading ? 'Generating...' : 'Generate Code'}
             </button>
@@ -656,7 +665,7 @@ export default function VibeLearEditor() {
                 type="file"
                 accept={acceptedFileTypes}
                 onChange={(e) => handleFileUpload(e.target.files?.[0])}
-                className="block w-full text-sm text-[var(--color-text-muted)] file:mr-3 file:rounded-md file:border-0 file:bg-[var(--color-primary)] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-[var(--color-primary-hover)]"
+                className="block w-full text-sm text-[var(--color-text-muted)] file:mr-3 file:rounded-none file:border-0 file:bg-[var(--color-primary)] file:px-3 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-[var(--color-primary-hover)]"
               />
               {uploadedFileName ? (
                 <p className="mt-1 text-xs text-zinc-500 dark:text-zinc-400">
@@ -672,7 +681,7 @@ export default function VibeLearEditor() {
                 value={pastedCode}
                 onChange={(e) => setPastedCode(e.target.value)}
                 placeholder="Paste code or classwork text here."
-                className={`w-full resize-y rounded-md border border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 py-2 font-mono text-xs leading-5 text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] ${hasCode ? 'h-20' : 'h-32'
+                className={`w-full resize-y rounded-none border-b border-[var(--color-border)] bg-[var(--color-surface-raised)] px-3 py-2 font-mono text-xs leading-5 text-[var(--color-text)] placeholder:text-[var(--color-text-muted)] shadow-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] ${hasCode ? 'h-20' : 'h-32'
                   }`}
               />
             </div>
@@ -681,7 +690,7 @@ export default function VibeLearEditor() {
                 type="button"
                 onClick={handleLoadPastedCode}
                 disabled={!pastedCode.trim()}
-                className="w-full rounded-md bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60 lg:w-auto"
+                className="w-full rounded-none bg-[var(--color-primary)] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[var(--color-primary-hover)] disabled:cursor-not-allowed disabled:opacity-60 lg:w-auto"
               >
                 Load into Editor
               </button>
@@ -691,27 +700,27 @@ export default function VibeLearEditor() {
 
       </div>
 
-      <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-5 py-2 text-xs text-zinc-500 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-400">
+      <div className="flex items-center justify-between border-b border-[var(--color-border)] bg-zinc-50 px-5 py-2 text-xs text-zinc-500 dark:bg-zinc-950 dark:text-zinc-400">
         <span>{editorStatus}</span>
         <button
           type="button"
           onClick={() => handleExplain('full')}
           disabled={!code.trim() || explaining}
-          className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          className="rounded-none border border-[var(--color-border)] bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
         >
           {explaining ? 'Explaining...' : 'Explain Code'}
         </button>
       </div>
 
       {error ? (
-        <div className="border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
+        <div className="border-b border-[var(--color-error)]/30 bg-red-50 px-4 py-2 text-sm text-red-600 dark:bg-red-950 dark:text-red-400">
           {error}
         </div>
       ) : null}
 
       <div className="flex min-h-0 flex-1 flex-col">
         <div className="flex min-h-0 flex-1 flex-col gap-0 md:flex-row">
-          <div className="relative min-h-0 flex-1 overflow-hidden border-r border-zinc-800 bg-zinc-950">
+          <div className="relative min-h-0 flex-1 overflow-hidden border-r border-[var(--color-border)] bg-zinc-950">
             <Editor
               height="100%"
               language={getMonacoLanguage(language)}
@@ -748,7 +757,7 @@ export default function VibeLearEditor() {
             ) : null}
 
             {loading ? (
-              <div className="absolute inset-x-0 top-0 z-10 bg-indigo-600 px-4 py-2 text-xs font-medium text-white">
+              <div className="absolute inset-x-0 top-0 z-10 bg-[#d4a84b] px-4 py-2 text-xs font-medium text-white">
                 Generating code with AI...
               </div>
             ) : null}
@@ -758,7 +767,7 @@ export default function VibeLearEditor() {
                 type="button"
                 onClick={() => handleExplain('selection')}
                 disabled={explaining}
-                className="absolute z-10 rounded-md border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 shadow-lg shadow-zinc-950/20 transition-colors hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-indigo-400/60 dark:bg-zinc-900 dark:text-indigo-100 dark:hover:bg-zinc-800"
+                className="absolute z-10 rounded-none border border-[var(--color-primary)]/60 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 shadow-lg shadow-zinc-950/20 transition-colors hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-70 dark:bg-zinc-900 dark:text-indigo-100 dark:hover:bg-zinc-800"
                 style={{
                   top: explainButtonPosition.top,
                   left: explainButtonPosition.left,
@@ -810,7 +819,7 @@ export default function VibeLearEditor() {
               ) : null}
 
               {explaining ? (
-                <div className="rounded-none border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-900 dark:border-indigo-900/60 dark:bg-indigo-950 dark:text-indigo-100">
+                <div className="rounded-none border border-indigo-200 bg-[#d4a84b] p-3 text-sm text-indigo-900 dark:border-indigo-900/60 dark:bg-indigo-950 dark:text-indigo-100">
                   Explaining with AI...
                 </div>
               ) : explanation ? (
@@ -905,7 +914,7 @@ export default function VibeLearEditor() {
           </aside>
         </div>
 
-        <QuizPanel code={code} isEnabled={quizEnabled} quiz={quizQuestions[quizIndex] ?? null} onAnswer={handleAnswer} onEnd={() => { setQuizQuestions([]); setQuizIndex(0); setQuizEnabled(false) }} />
+        <QuizPanel code={code} isEnabled={quizQuestions.length > 0 && quizIndex < quizQuestions.length} quiz={quizQuestions[quizIndex] ?? null} onAnswer={handleAnswer} onEnd={() => { setQuizQuestions([]); setQuizIndex(0) }} />
       </div>
       <div className="flex items-center justify-between border-t border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-0.5 text-xs font-mono text-[var(--color-text-muted)] shrink-0">
         <span className="tracking-widest text-[var(--color-primary)]">
@@ -923,13 +932,11 @@ export default function VibeLearEditor() {
             ))}
           </select>
           <button
-            onClick={() => setQuizEnabled((q) => !q)}
-            className="hover:text-[var(--color-text)] transition-colors"
+            onClick={handleLaunchQuiz}
+            disabled={!code}
+            className="hover:text-[var(--color-text)] disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
-            QUIZ: {quizEnabled ?
-              <span className="text-[var(--color-success)]">ON</span> :
-              <span className="text-[var(--color-text-dim)]">OFF</span>
-            }
+            QUIZ
           </button>
         </div>
       </div>
