@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vibe Learn",
-  description: "Vibe code while learning — AI generates code and teaches you what it built.",
+  title: "trace",
+  description: "vibe code while learning — AI generates code and teaches you what it built.",
 };
 
 export default function RootLayout({

@@ -622,10 +622,10 @@ export default function VibeLearEditor() {
   )
 
   return (
-    <div className="flex h-full flex-col bg-zinc-100 text-zinc-950 dark:bg-zinc-950 dark:text-zinc-50">
+    <div className="flex h-full flex-col bg-zinc-100 text-[#d4a84b] dark:bg-zinc-950 dark:text-zinc-50">
       <header className="flex items-center justify-between border-b border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-2.5">
         <div>
-          <span className="text-lg font-semibold tracking-tight">Vibe Learn</span>
+          <span className="text-lg font-semibold tracking-tight">trace</span>
         </div>
       </header>
 
@@ -953,7 +953,7 @@ export default function VibeLearEditor() {
       </div>
       <div className="flex items-center justify-between border-t border-[var(--color-border)] bg-[var(--color-surface)] px-3 py-0.5 text-xs font-mono text-[var(--color-text-muted)] shrink-0">
         <span className="tracking-widest text-[var(--color-primary)]">
-          VIBE LEARN
+          trace
         </span>
         <div className="flex items-center gap-4">
           <span>Ln {cursor.line}, Col {cursor.col}</span>
