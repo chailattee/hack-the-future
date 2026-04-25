@@ -13,7 +13,17 @@ function stripCodeFenceLines(text: string) {
 
 export async function POST(request: Request) {
   try {
-    const { prompt, language = 'JavaScript' } = await request.json()
+    const { prompt, language = 'JavaScript', quizMode = false, priorCode = '', userAnswer = '' } = await request.json()
+
+    const isContinuation = Boolean(priorCode && userAnswer)
+
+    const system = quizMode
+      ? isContinuation ? CONTINUE_SYSTEM(language) : QUIZ_SYSTEM(language)
+      : PLAIN_SYSTEM(language)
+
+    const userMessage = isContinuation
+      ? `Here is the code generated so far:\n${priorCode}\n\nThe user answered the quiz question with: ${userAnswer}\n\nNow continue generating the rest of the code.`
+      : prompt
 
     const message = await client.messages.create({
       model: 'claude-sonnet-4-6',
@@ -29,6 +39,14 @@ export async function POST(request: Request) {
 
     // Strip markdown fence marker lines if the model includes them anyway.
     const code = stripCodeFenceLines(raw)
+
+    // Extract quiz block if present
+    const quizMatch = code.match(/<QUIZ>([\s\S]*?)<\/QUIZ>/)
+    if (quizMatch) {
+      const codeBeforeQuiz = code.slice(0, code.indexOf('<QUIZ>')).trim()
+      const quiz = JSON.parse(quizMatch[1])
+      return Response.json({ code: codeBeforeQuiz, quiz })
+    }
 
     return Response.json({ code })
   } catch (err) {

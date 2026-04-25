@@ -223,11 +223,11 @@ export default function VibeLearEditor() {
   const [error, setError] = useState('')
   const [explainButtonPosition, setExplainButtonPosition] =
     useState<ExplainButtonPosition | null>(null)
-  const editorRef = useRef<MonacoEditor | null>(null)
-  const monacoRef = useRef<Monaco | null>(null)
-  const issueDecorationsRef = useRef<DecorationsCollection | null>(null)
-  const issueAnalysisIdRef = useRef(0)
-  const programmaticCodeUpdateRef = useRef(false)
+  const [quizEnabled, setQuizEnabled] = useState(false)
+  const [quizQuestions, setQuizQuestions] = useState<{ question: string; options: { A: string; B: string; C: string; D: string }; answer: string }[]>([])
+  const [quizIndex, setQuizIndex] = useState(0)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const settingsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     applyIssueDecorations(issues)
@@ -407,6 +407,8 @@ export default function VibeLearEditor() {
     if (!prompt.trim()) return
     setLoading(true)
     setError('')
+    setQuizQuestions([])
+    setQuizIndex(0)
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
@@ -418,12 +420,19 @@ export default function VibeLearEditor() {
         setError(data.error)
         return
       }
-      const generatedCode = stripCodeFenceLines(data.code)
-      updateEditorCode(generatedCode)
-      resetLearningState()
-      setUploadedFileName('')
-      setPendingCodeAddition(null)
-      analyzeCodeForIssues(generatedCode, language, 'generated')
+      setCode(data.code)
+      setSelectedCode('')
+      setExplainButtonPosition(null)
+      setExplanation('')
+      if (quizEnabled && data.code) {
+        const qRes = await fetch('/api/quiz', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: data.code, language, previousQuestions: [] }),
+        })
+        const qData = await qRes.json()
+        if (qData.questions) setQuizQuestions(qData.questions)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -431,96 +440,26 @@ export default function VibeLearEditor() {
     }
   }
 
-  function handleLoadPastedCode() {
-    const cleanedPastedCode = stripCodeFenceLines(pastedCode)
-
-    if (!cleanedPastedCode.trim()) return
-
-    if (mode === 'add' && code.trim()) {
-      setPendingCodeAddition({ text: cleanedPastedCode, source: 'paste' })
-      setError('')
-      return
-    }
-
-    applyCodeAddition(
-      {
-        text: cleanedPastedCode,
-        source: 'paste',
-      },
-      'replace',
-    )
-  }
-
-  function applyCodeAddition(
-    addition: PendingCodeAddition | null,
-    action: AddCodeAction,
-  ) {
-    if (!addition?.text.trim()) return
-
-    const editor = editorRef.current
-    const model = editor?.getModel()
-    const selection = editor?.getSelection()
-    const insertOffset =
-      model && selection ? model.getOffsetAt(selection.getStartPosition()) : code.length
-
-    const nextCode =
-      action === 'append' && code.trim()
-        ? `${code.trimEnd()}\n\n${addition.text}`
-        : action === 'insert' && code
-          ? `${code.slice(0, insertOffset)}${addition.text}${code.slice(insertOffset)}`
-          : addition.text
-    const nextLanguage = addition.language && (action === 'replace' || !code.trim())
-      ? addition.language
-      : language
-
-    updateEditorCode(nextCode)
-    resetLearningState()
-    setError('')
-    setUploadedFileName(addition.source === 'upload' ? addition.fileName ?? '' : '')
-    setPendingCodeAddition(null)
-
-    if (nextLanguage !== language) setLanguage(nextLanguage)
-    analyzeCodeForIssues(nextCode, nextLanguage, 'user')
-  }
-
-  async function handleFileUpload(file: File | undefined) {
-    if (!file) return
-    setError('')
-    const extension = getFileExtension(file.name)
-
-    if (!acceptedFileExtensions.includes(extension)) {
-      setUploadedFileName('')
-      setError(
-        'Unsupported file type. Upload a .java, .py, .js, .ts, .tsx, .jsx, .html, .css, .txt, or .md file.',
-      )
-      return
-    }
-
-    try {
-      const text = stripCodeFenceLines(await file.text())
-      setPastedCode(text)
-      const incomingCode = {
-        text,
-        source: 'upload' as const,
-        fileName: file.name,
-        language: getLanguageFromFileName(file.name),
+  async function handleAnswer() {
+    const nextIndex = quizIndex + 1
+    setQuizIndex(nextIndex)
+    if (nextIndex >= quizQuestions.length - 1 && code) {
+      try {
+        const qRes = await fetch('/api/quiz', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, language, previousQuestions: quizQuestions }),
+        })
+        const qData = await qRes.json()
+        if (qData.questions) setQuizQuestions((prev) => [...prev, ...qData.questions])
+      } catch {
+        // silently ignore — user still has remaining questions
       }
-
-      if (mode === 'add' && code.trim()) {
-        setPendingCodeAddition(incomingCode)
-        return
-      }
-
-      applyCodeAddition(incomingCode, 'replace')
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not read that file')
     }
   }
 
-  async function handleExplain(target: 'selection' | 'full' = 'selection') {
-    const codeToExplain = target === 'full' ? code.trim() : selectedCode.trim()
-
-    if (!codeToExplain) return
+  async function handleExplain() {
+    if (!selectedCode.trim()) return
     setExplaining(true)
     setError('')
     try {
@@ -964,7 +903,7 @@ export default function VibeLearEditor() {
         </aside>
       </div>
 
-      <QuizPanel code={code} isEnabled={quizEnabled} />
+      <QuizPanel code={code} isEnabled={quizEnabled} quiz={quizQuestions[quizIndex] ?? null} onAnswer={handleAnswer} onEnd={() => { setQuizQuestions([]); setQuizIndex(0); setQuizEnabled(false) }} />
     </div>
   )
 }
