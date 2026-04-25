@@ -24,3 +24,41 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+.vibe-issue-line {
+  background: rgba(239, 68, 68, 0.16);
+  border-left: 3px solid rgba(239, 68, 68, 0.9);
+}
+
+.vibe-issue-syntax {
+  background: rgba(239, 68, 68, 0.16);
+  border-left-color: rgba(239, 68, 68, 0.9);
+}
+
+.vibe-issue-runtime {
+  background: rgba(249, 115, 22, 0.16);
+  border-left-color: rgba(249, 115, 22, 0.9);
+}
+
+.vibe-issue-glyph::before {
+  content: "!";
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin-left: 4px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+}
+
+.vibe-issue-glyph-syntax::before {
+  background: #ef4444;
+}
+
+.vibe-issue-glyph-runtime::before {
+  background: #f97316;
+}

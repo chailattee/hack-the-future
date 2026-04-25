@@ -8,7 +8,7 @@ interface Props {
   onSelectionChange: (text: string) => void
 }
 
-export default function CodeEditor({ code, onSelectionChange }: Props) {
+export default function CodeEditor({ code, language, onSelectionChange }: Props) {
   const handleMount: OnMount = (editor) => {
     editor.onDidChangeCursorSelection(() => {
       const model = editor.getModel()
