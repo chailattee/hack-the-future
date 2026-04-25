@@ -1,5 +1,7 @@
 # trace
 
+[try it out!](https://hack-the-future-three.vercel.app/)
+
 **trace** is an AI-powered web IDE built for beginners who want to learn how to code by actually doing it — not just reading about it.
 
 Most coding tools assume you already know what you're doing. trace flips that. You describe an idea in plain English — "a to-do list in Python" or "a JavaScript quiz game" — and the AI writes starter code for you. But instead of handing you a black box, trace explains every line in plain language, so you understand what was built and why. Learning happens in the same moment as doing.
