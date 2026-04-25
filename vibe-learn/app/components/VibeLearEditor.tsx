@@ -1,24 +1,68 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import Editor from '@monaco-editor/react'
+import { useState } from 'react'
+import Editor, { type OnMount } from '@monaco-editor/react'
+
+type ExplainButtonPosition = {
+  top: number
+  left: number
+}
 
 export default function VibeLearEditor() {
   const [prompt, setPrompt] = useState('')
   const [code, setCode] = useState('')
   const [loading, setLoading] = useState(false)
-  const [selectedText, setSelectedText] = useState('')
+  const [selectedCode, setSelectedCode] = useState('')
+  const [explanation, setExplanation] = useState('')
+  const [explaining, setExplaining] = useState(false)
   const [error, setError] = useState('')
-  const [sidebarOpen, setSidebarOpen] = useState(true)
-  const editorRef = useRef<any>(null)
+  const [explainButtonPosition, setExplainButtonPosition] =
+    useState<ExplainButtonPosition | null>(null)
 
-  function handleMount(editor: any) {
-    editorRef.current = editor
-    editor.onDidChangeCursorSelection((e: any) => {
-      const model = editor.getModel()
-      if (!model) return
-      const text = model.getValueInRange(e.selection)
-      setSelectedText(text)
+  function updateSelectedCode(editor: Parameters<OnMount>[0]) {
+    const selection = editor.getSelection()
+    const model = editor.getModel()
+
+    if (!selection || !model || selection.isEmpty()) {
+      setSelectedCode('')
+      setExplainButtonPosition(null)
+      return
+    }
+
+    const value = model.getValueInRange(selection).trim()
+
+    if (!value) {
+      setSelectedCode('')
+      setExplainButtonPosition(null)
+      return
+    }
+
+    const endPosition = selection.getEndPosition()
+    const visiblePosition = editor.getScrolledVisiblePosition(endPosition)
+
+    setSelectedCode(value)
+    setExplainButtonPosition(
+      visiblePosition
+        ? {
+            top: Math.max(12, visiblePosition.top + visiblePosition.height + 8),
+            left: Math.max(12, visiblePosition.left),
+          }
+        : { top: 12, left: 12 },
+    )
+  }
+
+  const handleEditorMount: OnMount = (editor) => {
+    const selectionDisposable = editor.onDidChangeCursorSelection(() => {
+      updateSelectedCode(editor)
+    })
+    const scrollDisposable = editor.onDidScrollChange(() => {
+      if (editor.getSelection()?.isEmpty()) return
+      updateSelectedCode(editor)
+    })
+
+    editor.onDidDispose(() => {
+      selectionDisposable.dispose()
+      scrollDisposable.dispose()
     })
   }
 
@@ -34,62 +78,86 @@ export default function VibeLearEditor() {
         body: JSON.stringify({ prompt }),
       })
       const data = await res.json()
-      if (data.error) { setError(data.error); return }
+      if (data.error) {
+        setError(data.error)
+        return
+      }
       setCode(data.code)
-    } catch (e: any) {
-      setError(e?.message ?? 'Something went wrong')
+      setSelectedCode('')
+      setExplainButtonPosition(null)
+      setExplanation('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
       setLoading(false)
     }
   }
 
+  async function handleExplain() {
+    if (!selectedCode.trim()) return
+    setExplaining(true)
+    setError('')
+    try {
+      const res = await fetch('/api/explain', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: selectedCode }),
+      })
+      const data = await res.json()
+      if (data.error) {
+        setError(data.error)
+        return
+      }
+      setExplanation(data.explanation)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong')
+    } finally {
+      setExplaining(false)
+    }
+  }
+
   return (
-    <div className="flex flex-col h-full">
-      <header className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950">
-        <span className="font-semibold text-lg tracking-tight">Vibe Learn</span>
-        <button
-          onClick={() => setSidebarOpen((o) => !o)}
-          className="text-xs text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 transition-colors px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800"
-        >
-          {sidebarOpen ? 'Hide explain panel ›' : '‹ Explain panel'}
-        </button>
+    <div className="flex h-full flex-col">
+      <header className="flex items-center gap-3 border-b border-zinc-200 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950">
+        <span className="text-lg font-semibold tracking-tight">Vibe Learn</span>
       </header>
 
-      <form onSubmit={handleSubmit} className="flex gap-2 px-4 py-3 bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
+      <form
+        onSubmit={handleSubmit}
+        className="flex gap-2 border-b border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900"
+      >
         <input
           type="text"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="What do you want to build?"
-          className="flex-1 rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-zinc-100 placeholder-zinc-400"
+          className="flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
         />
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {loading ? 'Generating…' : 'Generate'}
+          {loading ? 'Generating...' : 'Generate'}
         </button>
       </form>
 
-      {error && (
-        <div className="px-4 py-2 text-sm text-red-600 bg-red-50 dark:bg-red-950 dark:text-red-400 border-b border-red-200 dark:border-red-800">
+      {error ? (
+        <div className="border-b border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600 dark:border-red-800 dark:bg-red-950 dark:text-red-400">
           {error}
         </div>
-      )}
+      ) : null}
 
-      {/* Main area: editor + sidebar side by side */}
-      <div className="flex flex-1 overflow-hidden">
-
-        {/* Monaco editor */}
-        <div className="flex-1">
+      <div className="flex min-h-0 flex-1 flex-col md:flex-row">
+        <div className="relative min-h-[360px] flex-1">
           <Editor
             height="100%"
             defaultLanguage="javascript"
             value={code}
-            onMount={handleMount}
+            onChange={(value) => setCode(value ?? '')}
+            onMount={handleEditorMount}
             options={{
-              readOnly: true,
+              readOnly: false,
               minimap: { enabled: false },
               fontSize: 14,
               scrollBeyondLastLine: false,
@@ -97,26 +165,44 @@ export default function VibeLearEditor() {
             }}
             theme="vs-dark"
           />
+
+          {code && selectedCode && explainButtonPosition ? (
+            <button
+              type="button"
+              onClick={handleExplain}
+              disabled={explaining}
+              className="absolute z-10 rounded-md border border-indigo-300 bg-white px-3 py-1.5 text-xs font-medium text-indigo-700 shadow-lg shadow-zinc-950/15 transition-colors hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-indigo-500/60 dark:bg-zinc-950 dark:text-indigo-200 dark:hover:bg-zinc-900"
+              style={{
+                top: explainButtonPosition.top,
+                left: explainButtonPosition.left,
+              }}
+            >
+              {explaining ? 'Explaining...' : 'Explain'}
+            </button>
+          ) : null}
         </div>
 
-        {/* Explanation sidebar — click-to-explain panel */}
-        <aside className={`${sidebarOpen ? 'w-80' : 'w-0'} shrink-0 border-l border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 overflow-hidden transition-[width] duration-200 flex flex-col`}>
-          {selectedText ? (
-            <div className="p-4 text-sm">
-              <p className="font-medium text-zinc-700 dark:text-zinc-300 mb-2">Selected code</p>
-              <pre className="font-mono text-xs text-zinc-500 dark:text-zinc-400 whitespace-pre-wrap break-all bg-zinc-50 dark:bg-zinc-900 rounded p-2 mb-4">
-                {selectedText}
-              </pre>
-              {/* TODO: fetch /api/explain with selectedText and render the explanation here */}
-              <p className="text-zinc-400 dark:text-zinc-500 italic">Explanation will appear here.</p>
-            </div>
-          ) : (
-            <div className="p-4 text-sm text-zinc-400 dark:text-zinc-500">
-              Select any code in the editor to get a plain-English explanation.
-            </div>
-          )}
-        </aside>
+        <aside className="flex w-full flex-col border-t border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-950 md:w-80 md:border-l md:border-t-0 lg:w-96">
+          <div className="mb-3">
+            <h2 className="text-sm font-semibold text-zinc-950 dark:text-zinc-100">
+              Explanation
+            </h2>
+          </div>
 
+          <div className="min-h-0 flex-1 overflow-y-auto text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+            {explaining ? (
+              <p className="text-zinc-500 dark:text-zinc-400">
+                Explaining the highlighted code...
+              </p>
+            ) : explanation ? (
+              <p className="whitespace-pre-wrap">{explanation}</p>
+            ) : (
+              <p className="text-zinc-500 dark:text-zinc-400">
+                Highlight some code to get an explanation.
+              </p>
+            )}
+          </div>
+        </aside>
       </div>
     </div>
   )
