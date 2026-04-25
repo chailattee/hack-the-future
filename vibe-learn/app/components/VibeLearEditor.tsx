@@ -85,7 +85,8 @@ export default function VibeLearEditor() {
   const [explainButtonPosition, setExplainButtonPosition] =
     useState<ExplainButtonPosition | null>(null)
   const [quizEnabled, setQuizEnabled] = useState(false)
-  const [quiz, setQuiz] = useState<{ question: string; options: { A: string; B: string; C: string; D: string }; answer: string } | null>(null)
+  const [quizQuestions, setQuizQuestions] = useState<{ question: string; options: { A: string; B: string; C: string; D: string }; answer: string }[]>([])
+  const [quizIndex, setQuizIndex] = useState(0)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const settingsRef = useRef<HTMLDivElement>(null)
 
@@ -151,12 +152,13 @@ export default function VibeLearEditor() {
     if (!prompt.trim()) return
     setLoading(true)
     setError('')
-    setQuiz(null)
+    setQuizQuestions([])
+    setQuizIndex(0)
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, language, quizMode: quizEnabled }),
+        body: JSON.stringify({ prompt, language }),
       })
       const data = await res.json()
       if (data.error) {
@@ -167,7 +169,15 @@ export default function VibeLearEditor() {
       setSelectedCode('')
       setExplainButtonPosition(null)
       setExplanation('')
-      if (data.quiz) setQuiz(data.quiz)
+      if (quizEnabled && data.code) {
+        const qRes = await fetch('/api/quiz', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: data.code, language, previousQuestions: [] }),
+        })
+        const qData = await qRes.json()
+        if (qData.questions) setQuizQuestions(qData.questions)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -175,27 +185,21 @@ export default function VibeLearEditor() {
     }
   }
 
-  async function handleAnswer(selected: string) {
-    if (!quiz) return
-    setLoading(true)
-    setError('')
-    try {
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt, language, quizMode: true, priorCode: code, userAnswer: selected }),
-      })
-      const data = await res.json()
-      if (data.error) {
-        setError(data.error)
-        return
+  async function handleAnswer() {
+    const nextIndex = quizIndex + 1
+    setQuizIndex(nextIndex)
+    if (nextIndex >= quizQuestions.length - 1 && code) {
+      try {
+        const qRes = await fetch('/api/quiz', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, language, previousQuestions: quizQuestions }),
+        })
+        const qData = await qRes.json()
+        if (qData.questions) setQuizQuestions((prev) => [...prev, ...qData.questions])
+      } catch {
+        // silently ignore — user still has remaining questions
       }
-      setCode((prev) => prev + '\n' + data.code)
-      setQuiz(data.quiz ?? null)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong')
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -380,7 +384,7 @@ export default function VibeLearEditor() {
         </aside>
       </div>
 
-      <QuizPanel code={code} isEnabled={quizEnabled} quiz={quiz} onAnswer={handleAnswer} />
+      <QuizPanel code={code} isEnabled={quizEnabled} quiz={quizQuestions[quizIndex] ?? null} onAnswer={handleAnswer} onEnd={() => { setQuizQuestions([]); setQuizIndex(0); setQuizEnabled(false) }} />
     </div>
   )
 }

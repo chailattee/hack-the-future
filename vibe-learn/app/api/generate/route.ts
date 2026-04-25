@@ -13,7 +13,11 @@ const QUIZ_SYSTEM = (language: string) => `You are a ${language} code generator 
 
 Output only raw ${language} code before the <QUIZ> block — no markdown, no backticks, no explanation.`
 
-const CONTINUE_SYSTEM = (language: string) => `You are a ${language} code generator. The user is continuing a code generation session after answering a quiz question. Continue writing the rest of the code from where it left off. Output only raw ${language} code — no markdown, no backticks, no explanation.`
+const CONTINUE_SYSTEM = (language: string) => `You are a ${language} code generator and teacher. The user is continuing a code generation session after answering a quiz question. Continue writing more code, then stop at the next natural breakpoint and insert another multiple choice question using EXACTLY this format:
+
+<QUIZ>{"question":"...","options":{"A":"...","B":"...","C":"...","D":"..."},"answer":"A"}</QUIZ>
+
+If there is no more meaningful code to write, just finish the code without a <QUIZ> block. Output only raw ${language} code — no markdown, no backticks, no explanation.`
 
 const PLAIN_SYSTEM = (language: string) => `You are a ${language} code generator. Output only valid ${language} code — no markdown, no backticks, no code fences, no comments, no explanation. Just the raw ${language} code itself.`
 
