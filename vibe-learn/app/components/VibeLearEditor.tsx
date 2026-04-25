@@ -6,10 +6,23 @@ import Editor from '@monaco-editor/react'
 export default function VibeLearEditor() {
   const [prompt, setPrompt] = useState('')
   const [code, setCode] = useState('')
+  const [loading, setLoading] = useState(false)
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    setCode('// your code will appear here')
+    if (!prompt.trim()) return
+    setLoading(true)
+    try {
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      })
+      const data = await res.json()
+      setCode(data.code)
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -28,9 +41,10 @@ export default function VibeLearEditor() {
         />
         <button
           type="submit"
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors"
+          disabled={loading}
+          className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          Generate
+          {loading ? 'Generating…' : 'Generate'}
         </button>
       </form>
 
