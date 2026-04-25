@@ -1,36 +1,32 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# trace
+
+**trace** is an AI-powered web IDE built for beginners who want to learn how to code by actually doing it — not just reading about it.
+
+Most coding tools assume you already know what you're doing. trace flips that. You describe an idea in plain English — "a to-do list in Python" or "a JavaScript quiz game" — and the AI writes starter code for you. But instead of handing you a black box, trace explains every line in plain language, so you understand what was built and why. Learning happens in the same moment as doing.
+
+## Features
+
+- **Generate from a prompt** — Describe what you want to build, pick a language (JavaScript, Python, TypeScript, Java, HTML, CSS, and more), and Claude generates working starter code instantly.
+- **Highlight to explain** — Select any part of the code, click "Explain," and get a plain-English breakdown of exactly what that code does. No jargon, no assumed knowledge.
+- **Upload or paste existing code** — Already have classwork or a code snippet? Drop it in and use the explain and quiz features on your own code.
+- **Automated code review** — The editor flags syntax and runtime errors with line numbers and fix suggestions as you go, acting like a patient teaching assistant in the background.
+- **Quiz mode** — Test your understanding of the code you just generated with AI-written multiple-choice questions. New questions are generated as you answer, so the learning never stops.
+
+## Tech stack
+
+Next.js 16 (App Router), Monaco Editor, Anthropic Claude Sonnet 4.6, Tailwind CSS, deployed on Vercel.
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Add your Anthropic API key to `.env.local`:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+ANTHROPIC_API_KEY=your_key_here
+```
