@@ -1,4 +1,3 @@
-<img width="1164" height="502" alt="Screenshot 2026-04-25 at 12 24 41 PM" src="https://github.com/user-attachments/assets/42b98c42-c220-4ec6-b3ed-0ec1f28e72dd" />
 # trace
 
 [try it out!](https://hack-the-future-three.vercel.app/)
