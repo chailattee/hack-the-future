@@ -6,6 +6,6 @@
 // System prompt hint: read the code and produce one beginner-friendly question about it —
 // either multiple-choice (return choices[]) or fill-in-the-blank (no choices).
 
-export async function POST(_request: Request) {
+export async function POST() {
   return Response.json({ question: 'TODO: implement quiz route' }, { status: 501 })
 }

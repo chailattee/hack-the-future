@@ -1,7 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
-import Editor from '@monaco-editor/react'
+import Editor, { type OnMount } from '@monaco-editor/react'
 
 interface Props {
   code: string
@@ -9,15 +8,15 @@ interface Props {
   onSelectionChange: (text: string) => void
 }
 
-export default function CodeEditor({ code, language, onSelectionChange }: Props) {
-  const editorRef = useRef<any>(null)
-
-  function handleMount(editor: any) {
-    editorRef.current = editor
-    editor.onDidChangeCursorSelection((e: any) => {
+export default function CodeEditor({ code, onSelectionChange }: Props) {
+  const handleMount: OnMount = (editor) => {
+    editor.onDidChangeCursorSelection(() => {
       const model = editor.getModel()
+      const selection = editor.getSelection()
+      
+      if (!selection) return
       if (!model) return
-      onSelectionChange(model.getValueInRange(e.selection))
+      onSelectionChange(model.getValueInRange(selection))
     })
   }
 
