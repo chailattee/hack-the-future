@@ -222,8 +222,10 @@ export default function VibeLearEditor() {
   const [explainButtonPosition, setExplainButtonPosition] =
     useState<ExplainButtonPosition | null>(null)
   const [settingsOpen, setSettingsOpen] = useState(false)
-  const [quizEnabled, setQuizEnabled] = useState(false)
   const [sidebarWidth, setSidebarWidth] = useState(384)
+  const [quizEnabled, setQuizEnabled] = useState(false)
+  const [quizQuestions, setQuizQuestions] = useState<{ question: string; options: { A: string; B: string; C: string; D: string }; answer: string }[]>([])
+  const [quizIndex, setQuizIndex] = useState(0)
   const editorRef = useRef<MonacoEditor | null>(null)
   const monacoRef = useRef<Monaco | null>(null)
   const issueDecorationsRef = useRef<DecorationsCollection | null>(null)
@@ -435,6 +437,8 @@ export default function VibeLearEditor() {
     if (!prompt.trim()) return
     setLoading(true)
     setError('')
+    setQuizQuestions([])
+    setQuizIndex(0)
     try {
       const res = await fetch('/api/generate', {
         method: 'POST',
@@ -446,11 +450,19 @@ export default function VibeLearEditor() {
         setError(data.error)
         return
       }
-      const generatedCode = stripCodeFenceLines(data.code)
-      updateEditorCode(generatedCode)
-      resetLearningState()
-      setUploadedFileName('')
-      analyzeCodeForIssues(generatedCode, language, 'generated')
+      setCode(data.code)
+      setSelectedCode('')
+      setExplainButtonPosition(null)
+      setExplanation('')
+      if (quizEnabled && data.code) {
+        const qRes = await fetch('/api/quiz', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: data.code, language, previousQuestions: [] }),
+        })
+        const qData = await qRes.json()
+        if (qData.questions) setQuizQuestions(qData.questions)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -519,10 +531,26 @@ export default function VibeLearEditor() {
     document.addEventListener('mouseup', onMouseUp)
   }
 
-  async function handleExplain(target: 'selection' | 'full' = 'selection') {
-    const codeToExplain = target === 'full' ? code.trim() : selectedCode.trim()
+  async function handleAnswer() {
+    const nextIndex = quizIndex + 1
+    setQuizIndex(nextIndex)
+    if (nextIndex >= quizQuestions.length - 1 && code) {
+      try {
+        const qRes = await fetch('/api/quiz', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, language, previousQuestions: quizQuestions }),
+        })
+        const qData = await qRes.json()
+        if (qData.questions) setQuizQuestions((prev) => [...prev, ...qData.questions])
+      } catch {
+        // silently ignore — user still has remaining questions
+      }
+    }
+  }
 
-    if (!codeToExplain) return
+  async function handleExplain(target: 'selection' | 'full') {
+    if (target === 'selection' && !selectedCode.trim()) return
     setExplaining(true)
     setError('')
     try {
@@ -530,7 +558,7 @@ export default function VibeLearEditor() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          code: codeToExplain,
+          code: target === 'selection' ? selectedCode : code,
           fullCode: code,
           language,
           scope: target,
@@ -747,202 +775,204 @@ export default function VibeLearEditor() {
         </div>
       ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col gap-0 md:flex-row">
-        <div className="relative min-h-[360px] flex-1 overflow-hidden bg-zinc-950">
-          <Editor
-            height="100%"
-            language={getMonacoLanguage(language)}
-            value={code}
-            onChange={(value) => {
-              setCode(value ?? '')
-              if (!programmaticCodeUpdateRef.current) {
-                clearIssueAnalysis()
-              }
-            }}
-            onMount={handleEditorMount}
-            options={{
-              readOnly: false,
-              minimap: { enabled: false },
-              fontSize: 14,
-              glyphMargin: true,
-              scrollBeyondLastLine: false,
-              padding: { top: 16 },
-            }}
-            theme="vs-dark"
-          />
-
-          {!code && !loading ? (
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-zinc-950/80 px-6 text-center">
-              <div>
-                <p className="text-sm font-semibold text-zinc-100">
-                  Upload code or generate something to begin.
-                </p>
-                <p className="mt-1 text-xs text-zinc-400">
-                  Your code will appear here in the editor.
-                </p>
-              </div>
-            </div>
-          ) : null}
-
-          {loading ? (
-            <div className="absolute inset-x-0 top-0 z-10 bg-indigo-600 px-4 py-2 text-xs font-medium text-white">
-              Generating code with AI...
-            </div>
-          ) : null}
-
-          {code && selectedCode && explainButtonPosition ? (
-            <button
-              type="button"
-              onClick={() => handleExplain('selection')}
-              disabled={explaining}
-              className="absolute z-10 rounded-md border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 shadow-lg shadow-zinc-950/20 transition-colors hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-indigo-400/60 dark:bg-zinc-900 dark:text-indigo-100 dark:hover:bg-zinc-800"
-              style={{
-                top: explainButtonPosition.top,
-                left: explainButtonPosition.left,
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex min-h-0 flex-1 flex-col gap-0 md:flex-row">
+          <div className="relative min-h-0 flex-1 overflow-hidden border-r border-zinc-800 bg-zinc-950">
+            <Editor
+              height="100%"
+              language={getMonacoLanguage(language)}
+              value={code}
+              onChange={(value) => {
+                setCode(value ?? '')
+                if (!programmaticCodeUpdateRef.current) {
+                  clearIssueAnalysis()
+                }
               }}
-            >
-              {explaining ? 'Explaining...' : 'Explain'}
-            </button>
-          ) : null}
-        </div>
+              onMount={handleEditorMount}
+              options={{
+                readOnly: false,
+                minimap: { enabled: false },
+                fontSize: 14,
+                glyphMargin: true,
+                scrollBeyondLastLine: false,
+                padding: { top: 16 },
+              }}
+              theme="vs-dark"
+            />
 
-        <div
-          className="group hidden cursor-col-resize md:flex md:w-2 md:items-center md:justify-center md:border-x md:border-zinc-800 md:bg-zinc-950 md:hover:border-indigo-500/60 md:hover:bg-indigo-950/40"
-          onMouseDown={handleResizerMouseDown}
-          role="separator"
-          aria-label="Resize sidebar"
-        >
-          <div className="h-8 w-0.5 rounded-full bg-zinc-700 transition-colors group-hover:bg-indigo-400" />
-        </div>
-
-        <aside
-          className="flex max-w-full flex-col border-t border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 md:border-t-0 md:shrink-0"
-          style={{ width: sidebarWidth }}
-        >
-          <div className="border-b border-zinc-200 bg-white px-5 py-3 dark:border-zinc-800 dark:bg-zinc-950">
-            <p className="text-xs font-medium uppercase tracking-wide text-indigo-600 dark:text-indigo-300">
-              AI help
-            </p>
-            <h2 className="mt-1 text-base font-semibold text-zinc-950 dark:text-zinc-50">
-              Explanations and issues
-            </h2>
-            <p className="mt-1 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
-              Highlight code or use Explain Code for a beginner-friendly breakdown.
-            </p>
-          </div>
-
-          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-            {selectedCode ? (
-              <div className="mb-4 border-b border-zinc-200 pb-4 dark:border-zinc-800">
-                <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                  Selected code
-                  {selectedRange
-                    ? `, lines ${selectedRange.startLine}-${selectedRange.endLine}`
-                    : ''}
-                </p>
-                <pre className="max-h-28 overflow-auto rounded-md border border-zinc-200 bg-white p-3 font-mono text-xs leading-5 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
-                  {selectedCode}
-                </pre>
+            {!code && !loading ? (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-zinc-950/80 px-6 text-center">
+                <div>
+                  <p className="text-sm font-semibold text-zinc-100">
+                    Upload code or generate something to begin.
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-400">
+                    Your code will appear here in the editor.
+                  </p>
+                </div>
               </div>
             ) : null}
 
-            {explaining ? (
-              <div className="rounded-md border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-900 dark:border-indigo-900/60 dark:bg-indigo-950 dark:text-indigo-100">
-                Explaining with AI...
+            {loading ? (
+              <div className="absolute inset-x-0 top-0 z-10 bg-indigo-600 px-4 py-2 text-xs font-medium text-white">
+                Generating code with AI...
               </div>
-            ) : explanation ? (
-              <div className="rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
-                <p className="mb-3 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                  Explanation
-                </p>
-                <div className="space-y-3">{renderExplanation(explanation)}</div>
-              </div>
-            ) : (
-              <div className="rounded-md border border-dashed border-zinc-300 bg-white p-4 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400">
-                {code.trim()
-                  ? 'Highlight code or click Explain Code to see a beginner-friendly explanation.'
-                  : 'Upload code or generate something to begin.'}
-              </div>
-            )}
+            ) : null}
 
-            <div className="mt-4 rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                  Code review
-                </p>
-                {analyzingIssues ? (
-                  <span className="text-xs text-zinc-500 dark:text-zinc-400">
-                    Checking...
-                  </span>
-                ) : null}
-              </div>
+            {code && selectedCode && explainButtonPosition ? (
+              <button
+                type="button"
+                onClick={() => handleExplain('selection')}
+                disabled={explaining}
+                className="absolute z-10 rounded-md border border-indigo-200 bg-white px-3 py-1.5 text-xs font-semibold text-indigo-700 shadow-lg shadow-zinc-950/20 transition-colors hover:bg-indigo-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-indigo-400/60 dark:bg-zinc-900 dark:text-indigo-100 dark:hover:bg-zinc-800"
+                style={{
+                  top: explainButtonPosition.top,
+                  left: explainButtonPosition.left,
+                }}
+              >
+                {explaining ? 'Explaining...' : 'Explain'}
+              </button>
+            ) : null}
+          </div>
 
-              {issueAnalysisError ? (
-                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
-                  {issueAnalysisError}
-                </p>
-              ) : errorIssues.length ? (
-                <div className="mt-3 space-y-3">
-                  {errorIssues.map((issue, index) => (
-                    <div
-                      key={`${issue.lineNumber}-${issue.type}-${index}`}
-                      className="rounded-md border border-red-200 bg-red-50 p-3 text-xs leading-5 text-red-950 dark:border-red-900/60 dark:bg-red-950 dark:text-red-100"
-                    >
-                      <div className="mb-1 flex flex-wrap items-center gap-2">
-                        <span className="font-semibold">Line {issue.lineNumber}</span>
-                        <span className="rounded bg-red-100 px-2 py-0.5 font-medium uppercase tracking-wide text-red-800 dark:bg-red-900 dark:text-red-100">
-                          {issue.type}
-                        </span>
-                      </div>
-                      <p>{issue.explanation}</p>
-                      <p className="mt-2">
-                        <span className="font-semibold">Suggested fix:</span>{' '}
-                        {issue.suggestedFix}
-                      </p>
-                    </div>
-                  ))}
+          <div
+            className="group hidden cursor-col-resize md:flex md:w-2 md:items-center md:justify-center md:border-x md:border-zinc-800 md:bg-zinc-950 md:hover:border-indigo-500/60 md:hover:bg-indigo-950/40"
+            onMouseDown={handleResizerMouseDown}
+            role="separator"
+            aria-label="Resize sidebar"
+          >
+            <div className="h-8 w-0.5 rounded-full bg-zinc-700 transition-colors group-hover:bg-indigo-400" />
+          </div>
+
+          <aside
+            className="flex max-w-full flex-col border-t border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900 md:border-t-0 md:shrink-0"
+            style={{ width: sidebarWidth }}
+          >
+            <div className="border-b border-zinc-200 bg-white px-5 py-3 dark:border-zinc-800 dark:bg-zinc-950">
+              <p className="text-xs font-medium uppercase tracking-wide text-indigo-600 dark:text-indigo-300">
+                AI help
+              </p>
+              <h2 className="mt-1 text-base font-semibold text-zinc-950 dark:text-zinc-50">
+                Explanations and issues
+              </h2>
+              <p className="mt-1 text-xs leading-5 text-zinc-500 dark:text-zinc-400">
+                Highlight code or use Explain Code for a beginner-friendly breakdown.
+              </p>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
+              {selectedCode ? (
+                <div className="mb-4 border-b border-zinc-200 pb-4 dark:border-zinc-800">
+                  <p className="mb-2 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                    Selected code
+                    {selectedRange
+                      ? `, lines ${selectedRange.startLine}-${selectedRange.endLine}`
+                      : ''}
+                  </p>
+                  <pre className="max-h-28 overflow-auto rounded-md border border-zinc-200 bg-white p-3 font-mono text-xs leading-5 text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
+                    {selectedCode}
+                  </pre>
+                </div>
+              ) : null}
+
+              {explaining ? (
+                <div className="rounded-md border border-indigo-200 bg-indigo-50 p-3 text-sm text-indigo-900 dark:border-indigo-900/60 dark:bg-indigo-950 dark:text-indigo-100">
+                  Explaining with AI...
+                </div>
+              ) : explanation ? (
+                <div className="rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
+                  <p className="mb-3 text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                    Explanation
+                  </p>
+                  <div className="space-y-3">{renderExplanation(explanation)}</div>
                 </div>
               ) : (
-                <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                <div className="rounded-md border border-dashed border-zinc-300 bg-white p-4 text-zinc-500 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-400">
                   {code.trim()
-                    ? 'No syntax or runtime errors found.'
-                    : 'Add code to check for errors.'}
-                </p>
+                    ? 'Highlight code or click Explain Code to see a beginner-friendly explanation.'
+                    : 'Upload code or generate something to begin.'}
+                </div>
               )}
 
-              {improvementIssues.length ? (
-                <details className="mt-3 rounded-md border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
-                  <summary className="cursor-pointer text-xs font-semibold text-zinc-700 dark:text-zinc-200">
-                    Optional improvements ({improvementIssues.length})
-                  </summary>
+              <div className="mt-4 rounded-md border border-zinc-200 bg-white p-3 dark:border-zinc-800 dark:bg-zinc-950">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                    Code review
+                  </p>
+                  {analyzingIssues ? (
+                    <span className="text-xs text-zinc-500 dark:text-zinc-400">
+                      Checking...
+                    </span>
+                  ) : null}
+                </div>
+
+                {issueAnalysisError ? (
+                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                    {issueAnalysisError}
+                  </p>
+                ) : errorIssues.length ? (
                   <div className="mt-3 space-y-3">
-                    {improvementIssues.map((issue, index) => (
+                    {errorIssues.map((issue, index) => (
                       <div
                         key={`${issue.lineNumber}-${issue.type}-${index}`}
-                        className="text-xs leading-5 text-zinc-700 dark:text-zinc-300"
+                        className="rounded-md border border-red-200 bg-red-50 p-3 text-xs leading-5 text-red-950 dark:border-red-900/60 dark:bg-red-950 dark:text-red-100"
                       >
                         <div className="mb-1 flex flex-wrap items-center gap-2">
                           <span className="font-semibold">Line {issue.lineNumber}</span>
-                          <span className="rounded bg-zinc-200 px-2 py-0.5 font-medium uppercase tracking-wide text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+                          <span className="rounded bg-red-100 px-2 py-0.5 font-medium uppercase tracking-wide text-red-800 dark:bg-red-900 dark:text-red-100">
                             {issue.type}
                           </span>
                         </div>
                         <p>{issue.explanation}</p>
-                        <p className="mt-1">
-                          <span className="font-semibold">Suggestion:</span>{' '}
+                        <p className="mt-2">
+                          <span className="font-semibold">Suggested fix:</span>{' '}
                           {issue.suggestedFix}
                         </p>
                       </div>
                     ))}
                   </div>
-                </details>
-              ) : null}
-            </div>
-          </div>
-        </aside>
-      </div>
+                ) : (
+                  <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">
+                    {code.trim()
+                      ? 'No syntax or runtime errors found.'
+                      : 'Add code to check for errors.'}
+                  </p>
+                )}
 
-      <QuizPanel code={code} isEnabled={quizEnabled} />
+                {improvementIssues.length ? (
+                  <details className="mt-3 rounded-md border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-800 dark:bg-zinc-900">
+                    <summary className="cursor-pointer text-xs font-semibold text-zinc-700 dark:text-zinc-200">
+                      Optional improvements ({improvementIssues.length})
+                    </summary>
+                    <div className="mt-3 space-y-3">
+                      {improvementIssues.map((issue, index) => (
+                        <div
+                          key={`${issue.lineNumber}-${issue.type}-${index}`}
+                          className="text-xs leading-5 text-zinc-700 dark:text-zinc-300"
+                        >
+                          <div className="mb-1 flex flex-wrap items-center gap-2">
+                            <span className="font-semibold">Line {issue.lineNumber}</span>
+                            <span className="rounded bg-zinc-200 px-2 py-0.5 font-medium uppercase tracking-wide text-zinc-700 dark:bg-zinc-800 dark:text-zinc-200">
+                              {issue.type}
+                            </span>
+                          </div>
+                          <p>{issue.explanation}</p>
+                          <p className="mt-1">
+                            <span className="font-semibold">Suggestion:</span>{' '}
+                            {issue.suggestedFix}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                ) : null}
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <QuizPanel code={code} isEnabled={quizEnabled} quiz={quizQuestions[quizIndex] ?? null} onAnswer={handleAnswer} onEnd={() => { setQuizQuestions([]); setQuizIndex(0); setQuizEnabled(false) }} />
+      </div>
     </div>
   )
 }
